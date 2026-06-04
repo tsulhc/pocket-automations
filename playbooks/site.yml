@@ -36,7 +36,7 @@
   gather_facts: true
   roles:
     - role: igniter_middleman
-  when: igniter_middleman_enabled | bool
+      when: igniter_middleman_enabled | bool
 
 - name: Deploy reverse proxy
   hosts: reverse_proxy_hosts
