@@ -1,0 +1,21 @@
+---
+pocketd_install_script_url: https://raw.githubusercontent.com/pokt-network/poktroll/main/tools/scripts/pocketd-install.sh
+pocketd_install_script_path: /tmp/pocketd-install.sh
+
+# Use "latest" for the install script default, or pin a release tag such as "v0.1.33".
+pocketd_version: latest
+pocketd_upgrade: false
+
+pocketd_networks:
+  main:
+    chain_id: pocket
+  beta:
+    chain_id: pocket-lego-testnet
+  local:
+    chain_id: pocket
+
+pocketd_expected_chain_id: "{{ pocket_chain_id | default(pocketd_networks[pocket_network].chain_id) }}"
+pocketd_allow_chain_id_override: false
+pocketd_keyring_backend: os
+
+pocketd_validation_report_path: /var/lib/pocket-automations/pocketd-validation.env

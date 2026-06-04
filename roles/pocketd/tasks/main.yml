@@ -1,0 +1,63 @@
+---
+- name: Validate Pocket network is supported
+  ansible.builtin.assert:
+    that:
+      - pocket_network is defined
+      - pocket_network in pocketd_networks
+    fail_msg: "pocket_network must be one of: {{ pocketd_networks.keys() | list | join(', ') }}"
+
+- name: Validate configured chain ID matches network default unless intentionally overridden
+  ansible.builtin.assert:
+    that:
+      - pocketd_allow_chain_id_override | bool or pocketd_expected_chain_id == pocketd_networks[pocket_network].chain_id
+    fail_msg: >-
+      pocket_chain_id is {{ pocketd_expected_chain_id }}, but pocket_network={{ pocket_network }}
+      defaults to {{ pocketd_networks[pocket_network].chain_id }}. Set pocketd_allow_chain_id_override=true
+      only after confirming the target network configuration.
+    success_msg: "Pocket network and chain ID mapping are consistent."
+  when: pocket_chain_id is defined
+
+- name: Download pocketd install script
+  ansible.builtin.get_url:
+    url: "{{ pocketd_install_script_url }}"
+    dest: "{{ pocketd_install_script_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Check whether pocketd is already installed
+  ansible.builtin.command: pocketd version
+  register: pocketd_existing_version
+  changed_when: false
+  failed_when: false
+
+- name: Build pocketd install command
+  ansible.builtin.set_fact:
+    pocketd_install_command: >-
+      {{ pocketd_install_script_path }}
+      {% if pocketd_version != 'latest' %}--tag {{ pocketd_version }}{% endif %}
+      {% if pocketd_upgrade | bool and pocketd_existing_version.rc == 0 %}--upgrade{% endif %}
+
+- name: Install or upgrade pocketd
+  ansible.builtin.command: "{{ pocketd_install_command }}"
+  register: pocketd_install_result
+  changed_when: pocketd_install_result.rc == 0
+  when: pocketd_upgrade | bool or pocketd_existing_version.rc != 0
+
+- name: Validate pocketd is available
+  ansible.builtin.command: pocketd version
+  register: pocketd_version_check
+  changed_when: false
+
+- name: Validate pocketd help is available
+  ansible.builtin.command: pocketd --help
+  register: pocketd_help_check
+  changed_when: false
+
+- name: Write pocketd validation report
+  ansible.builtin.template:
+    src: pocketd-validation.env.j2
+    dest: "{{ pocketd_validation_report_path }}"
+    owner: root
+    group: pocket
+    mode: "0640"
