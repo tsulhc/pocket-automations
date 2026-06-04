@@ -10,6 +10,7 @@ common_base_packages:
   - apt-transport-https
   - ca-certificates
   - curl
+  - git
   - gnupg
   - jq
   - lsb-release
