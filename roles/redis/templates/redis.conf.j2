@@ -1,0 +1,25 @@
+bind 0.0.0.0
+port 6379
+protected-mode yes
+
+dir /data
+appendonly yes
+appendfsync {{ redis_appendfsync }}
+aof-use-rdb-preamble yes
+
+maxmemory-policy noeviction
+{% if redis_maxmemory | length > 0 %}
+maxmemory {{ redis_maxmemory }}
+{% endif %}
+
+io-threads {{ redis_io_threads }}
+io-threads-do-reads yes
+
+lazyfree-lazy-eviction yes
+lazyfree-lazy-expire yes
+lazyfree-lazy-server-del yes
+
+activedefrag yes
+active-defrag-threshold-lower 10
+active-defrag-threshold-upper 25
+hz 100

@@ -1,0 +1,17 @@
+---
+redis_deployment_mode: docker
+redis_image: redis:8.4-alpine
+redis_container_name: pocket-redis
+redis_bind_address: 127.0.0.1
+redis_port: 6379
+redis_data_dir: /var/lib/pocket-automations/redis
+redis_config_dir: /etc/pocket-automations/redis
+redis_config_path: "{{ redis_config_dir }}/redis.conf"
+redis_min_version: "8.2"
+
+redis_external_host: "{{ (redis_url | default('redis://redis.example.internal:6379')) | regex_replace('^redis://([^:/]+).*$','\\1') }}"
+redis_external_port: "{{ (redis_url | default('redis://redis.example.internal:6379')) | regex_replace('^.*:([0-9]+).*$','\\1') }}"
+
+redis_maxmemory: ""
+redis_io_threads: 3
+redis_appendfsync: everysec

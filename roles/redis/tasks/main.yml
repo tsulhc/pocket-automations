@@ -1,0 +1,75 @@
+---
+- name: Validate Redis deployment mode
+  ansible.builtin.assert:
+    that:
+      - redis_deployment_mode in ['docker', 'external']
+    fail_msg: "redis_deployment_mode must be docker or external."
+
+- name: Create Redis directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: root
+    group: pocket
+    mode: "{{ item.mode }}"
+    state: directory
+  loop:
+    - path: "{{ redis_data_dir }}"
+      mode: "0750"
+    - path: "{{ redis_config_dir }}"
+      mode: "0750"
+  when: redis_deployment_mode == 'docker'
+
+- name: Render Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ redis_config_path }}"
+    owner: root
+    group: pocket
+    mode: "0640"
+  when: redis_deployment_mode == 'docker'
+
+- name: Run Redis container
+  community.docker.docker_container:
+    name: "{{ redis_container_name }}"
+    image: "{{ redis_image }}"
+    pull: missing
+    restart_policy: unless-stopped
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    published_ports:
+      - "{{ redis_bind_address }}:{{ redis_port }}:6379"
+    volumes:
+      - "{{ redis_data_dir }}:/data"
+      - "{{ redis_config_path }}:/usr/local/etc/redis/redis.conf:ro"
+    state: started
+  when: redis_deployment_mode == 'docker'
+
+- name: Inspect Redis container version
+  community.docker.docker_container_exec:
+    container: "{{ redis_container_name }}"
+    command: redis-server --version
+  register: redis_container_version
+  changed_when: false
+  when: redis_deployment_mode == 'docker'
+
+- name: Validate Redis container minimum version
+  ansible.builtin.assert:
+    that:
+      - redis_container_version.stdout is search('v=([8-9]|[1-9][0-9])\\.')
+    fail_msg: "HA RelayMiner requires Redis {{ redis_min_version }} or newer. Detected: {{ redis_container_version.stdout }}"
+  when: redis_deployment_mode == 'docker'
+
+- name: Validate external Redis settings
+  ansible.builtin.assert:
+    that:
+      - redis_external_host is defined
+      - redis_external_host | length > 0
+      - redis_external_port | int > 0
+    fail_msg: "Set redis_url or redis_external_host/redis_external_port for external Redis mode."
+  when: redis_deployment_mode == 'external'
+
+- name: Check external Redis TCP connectivity
+  ansible.builtin.wait_for:
+    host: "{{ redis_external_host }}"
+    port: "{{ redis_external_port }}"
+    timeout: 10
+  when: redis_deployment_mode == 'external'
