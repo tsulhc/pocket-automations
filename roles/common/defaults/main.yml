@@ -1,0 +1,77 @@
+---
+common_supported_distributions:
+  - Ubuntu
+
+common_supported_ubuntu_versions:
+  - "22.04"
+  - "24.04"
+
+common_base_packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - jq
+  - lsb-release
+  - openssl
+  - python3-apt
+  - software-properties-common
+  - tar
+  - unzip
+  - wget
+  - zstd
+
+common_service_group: pocket
+
+common_service_users:
+  - name: pocket
+    home: /opt/pocket
+    shell: /usr/sbin/nologin
+  - name: igniter
+    home: /opt/igniter
+    shell: /usr/sbin/nologin
+  - name: relayminer
+    home: /opt/pocket-relay-miner
+    shell: /usr/sbin/nologin
+
+common_directories:
+  - path: /opt/pocket
+    owner: pocket
+    group: pocket
+    mode: "0755"
+  - path: /opt/igniter
+    owner: igniter
+    group: pocket
+    mode: "0750"
+  - path: /opt/pocket-relay-miner
+    owner: relayminer
+    group: pocket
+    mode: "0750"
+  - path: /etc/pocket-automations
+    owner: root
+    group: pocket
+    mode: "0750"
+  - path: /var/lib/pocket-automations
+    owner: root
+    group: pocket
+    mode: "0750"
+  - path: /var/log/pocket-automations
+    owner: root
+    group: pocket
+    mode: "0750"
+
+common_sysctl_settings:
+  net.core.somaxconn: "4096"
+  net.ipv4.tcp_keepalive_time: "60"
+  net.ipv4.tcp_keepalive_intvl: "10"
+  net.ipv4.tcp_keepalive_probes: "6"
+
+common_limits:
+  - domain: "*"
+    limit_type: soft
+    limit_item: nofile
+    value: "1048576"
+  - domain: "*"
+    limit_type: hard
+    limit_item: nofile
+    value: "1048576"
