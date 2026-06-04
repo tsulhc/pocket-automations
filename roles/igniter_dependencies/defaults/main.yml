@@ -1,0 +1,20 @@
+---
+igniter_repo_url: https://github.com/pokt-network/igniter.git
+igniter_repo_version: main
+igniter_root: /opt/igniter/source
+
+postgres_deployment_mode: docker
+temporal_deployment_mode: docker
+igniter_dependencies_mode: "{{ 'docker' if postgres_deployment_mode == 'docker' and temporal_deployment_mode == 'docker' else 'external' }}"
+
+igniter_postgres_user: igniter
+igniter_postgres_password: VAULT_OR_SECRET_MANAGER_VALUE
+igniter_postgres_host: postgresql
+igniter_postgres_port: 5432
+
+temporal_external_host: temporal.example.internal
+temporal_external_port: 7233
+postgres_external_host: postgres.example.internal
+postgres_external_port: 5432
+
+igniter_dependencies_env_path: "{{ igniter_root }}/docker-compose/dependencies/.env"

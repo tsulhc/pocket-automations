@@ -1,0 +1,82 @@
+---
+- name: Validate Igniter dependency deployment modes
+  ansible.builtin.assert:
+    that:
+      - postgres_deployment_mode in ['docker', 'external']
+      - temporal_deployment_mode in ['docker', 'external']
+    fail_msg: "postgres_deployment_mode and temporal_deployment_mode must be either docker or external."
+
+- name: Validate local dependency modes are aligned
+  ansible.builtin.assert:
+    that:
+      - postgres_deployment_mode == temporal_deployment_mode
+    fail_msg: >-
+      The initial implementation supports both Igniter dependencies in docker mode, or both in external mode.
+      Mixed PostgreSQL/Temporal modes will be added once Provider and Middleman env rendering is implemented.
+
+- name: Validate PostgreSQL password is provided for Docker mode
+  ansible.builtin.assert:
+    that:
+      - igniter_postgres_password is defined
+      - igniter_postgres_password | length >= 16
+      - igniter_postgres_password != 'VAULT_OR_SECRET_MANAGER_VALUE'
+    fail_msg: "Set igniter_postgres_password through Ansible Vault or an external secret manager."
+  when: igniter_dependencies_mode == 'docker'
+  no_log: true
+
+- name: Clone Igniter repository for Docker Compose deployments
+  ansible.builtin.git:
+    repo: "{{ igniter_repo_url }}"
+    dest: "{{ igniter_root }}"
+    version: "{{ igniter_repo_version }}"
+    update: true
+  when: igniter_dependencies_mode == 'docker'
+
+- name: Render Igniter dependencies environment
+  ansible.builtin.template:
+    src: dependencies.env.j2
+    dest: "{{ igniter_dependencies_env_path }}"
+    owner: igniter
+    group: pocket
+    mode: "0640"
+  when: igniter_dependencies_mode == 'docker'
+  no_log: true
+
+- name: Start Igniter dependency stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ igniter_root }}/docker-compose/dependencies"
+    state: present
+    pull: missing
+  when: igniter_dependencies_mode == 'docker'
+
+- name: Validate external PostgreSQL settings
+  ansible.builtin.assert:
+    that:
+      - postgres_external_host is defined
+      - postgres_external_host | length > 0
+      - postgres_external_port | int > 0
+    fail_msg: "Set postgres_external_host and postgres_external_port for external PostgreSQL mode."
+  when: igniter_dependencies_mode == 'external'
+
+- name: Validate external Temporal settings
+  ansible.builtin.assert:
+    that:
+      - temporal_external_host is defined
+      - temporal_external_host | length > 0
+      - temporal_external_port | int > 0
+    fail_msg: "Set temporal_external_host and temporal_external_port for external Temporal mode."
+  when: igniter_dependencies_mode == 'external'
+
+- name: Check external PostgreSQL TCP connectivity
+  ansible.builtin.wait_for:
+    host: "{{ postgres_external_host }}"
+    port: "{{ postgres_external_port }}"
+    timeout: 10
+  when: igniter_dependencies_mode == 'external'
+
+- name: Check external Temporal TCP connectivity
+  ansible.builtin.wait_for:
+    host: "{{ temporal_external_host }}"
+    port: "{{ temporal_external_port }}"
+    timeout: 10
+  when: igniter_dependencies_mode == 'external'
