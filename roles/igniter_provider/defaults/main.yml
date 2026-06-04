@@ -1,0 +1,52 @@
+---
+igniter_provider_enabled: true
+igniter_provider_compose_project_src: "{{ igniter_root }}/docker-compose/apps/provider"
+igniter_provider_env_path: "{{ igniter_provider_compose_project_src }}/.env"
+igniter_provider_secret_file: /etc/pocket-automations/igniter-provider-secrets.yml
+igniter_provider_bootstrap_report_path: /var/lib/pocket-automations/igniter-provider-bootstrap.md
+
+igniter_provider_compose_project_name: igniter-provider
+igniter_provider_image_tag: latest
+igniter_provider_log_level: info
+igniter_provider_node_env: production
+
+igniter_provider_host: 127.0.0.1
+igniter_provider_port: 3001
+igniter_provider_scheme: https
+igniter_provider_app_url: "{{ igniter_provider_scheme }}://{{ provider_domain }}"
+igniter_provider_auth_url: "{{ igniter_provider_app_url }}"
+igniter_provider_auth_trust_host: true
+
+igniter_provider_temporal_namespace: provider
+igniter_provider_temporal_task_queue: provider-operations
+igniter_provider_temporal_workflow_retention: 604800
+
+igniter_provider_db_name: provider
+igniter_provider_pguser: "{{ igniter_postgres_user | default('igniter') }}"
+igniter_provider_pgpassword: "{{ igniter_postgres_password | default('VAULT_OR_SECRET_MANAGER_VALUE') }}"
+igniter_provider_pghost: "{{ 'postgresql' if postgres_deployment_mode | default('docker') == 'docker' else postgres_external_host | default('postgres.example.internal') }}"
+igniter_provider_pgport: "{{ 5432 if postgres_deployment_mode | default('docker') == 'docker' else postgres_external_port | default(5432) }}"
+igniter_provider_database_sslmode: disable
+igniter_provider_database_url: "postgres://{{ igniter_provider_pguser }}:{{ igniter_provider_pgpassword }}@{{ igniter_provider_pghost }}:{{ igniter_provider_pgport }}/{{ igniter_provider_db_name }}?sslmode={{ igniter_provider_database_sslmode }}"
+
+igniter_provider_temporal_url: "{{ 'temporal:7233' if temporal_deployment_mode | default('docker') == 'docker' else (temporal_external_host | default('temporal.example.internal')) ~ ':' ~ (temporal_external_port | default(7233)) }}"
+
+igniter_provider_blockchain_protocol: shannon
+igniter_provider_minimum_stake_buffer: "500000000"
+igniter_provider_delegators_cdn_url: "https://raw.githubusercontent.com/stake-igniter/governace/refs/heads/main/{chainId}/middleman.json"
+
+igniter_provider_generate_missing_secrets: true
+igniter_provider_encryption_iv: ""
+igniter_provider_encryption_key: ""
+igniter_provider_auth_secret: ""
+
+igniter_provider_required_placeholders:
+  - ""
+  - CHANGEME
+  - VAULT_OR_SECRET_MANAGER_VALUE
+  - pokt1replacewithowneraddress
+
+igniter_provider_healthcheck_enabled: true
+igniter_provider_healthcheck_url: "http://{{ igniter_provider_host }}:{{ igniter_provider_port }}/api/health"
+igniter_provider_healthcheck_retries: 20
+igniter_provider_healthcheck_delay: 6

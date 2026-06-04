@@ -1,0 +1,11 @@
+services:
+  provider-migration:
+    image: "ghcr.io/pokt-network/provider:{{ igniter_provider_image_tag }}"
+
+  provider-web:
+    image: "ghcr.io/pokt-network/provider:{{ igniter_provider_image_tag }}"
+    ports:
+      - "{{ igniter_provider_host }}:{{ igniter_provider_port }}:3001"
+
+  provider-workflows:
+    image: "ghcr.io/pokt-network/provider-workflows:{{ igniter_provider_image_tag }}"

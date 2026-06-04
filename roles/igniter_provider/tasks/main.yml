@@ -1,0 +1,148 @@
+---
+- name: Skip Igniter Provider when disabled
+  ansible.builtin.meta: end_host
+  when: not igniter_provider_enabled | bool
+
+- name: Validate required Provider identity settings
+  ansible.builtin.assert:
+    that:
+      - igniter_provider_owner_identity is defined
+      - igniter_provider_owner_identity not in igniter_provider_required_placeholders
+      - igniter_provider_owner_identity is match('^pokt1')
+      - igniter_provider_owner_email is defined
+      - igniter_provider_owner_email not in igniter_provider_required_placeholders
+      - igniter_provider_owner_email is search('@')
+      - igniter_provider_app_identity is defined
+      - igniter_provider_app_identity not in igniter_provider_required_placeholders
+    fail_msg: >-
+      Set igniter_provider_owner_identity, igniter_provider_owner_email, and igniter_provider_app_identity
+      through inventory, Ansible Vault, or an external secret manager before deploying Provider.
+  no_log: true
+
+- name: Validate Provider network settings
+  ansible.builtin.assert:
+    that:
+      - pocket_rpc_url is defined
+      - pocket_rpc_url is match('^https?://')
+      - pocket_chain_id is defined
+      - pocket_chain_id | length > 0
+      - provider_domain is defined
+      - provider_domain | length > 0
+    fail_msg: "Set pocket_rpc_url, pocket_chain_id, and provider_domain for Igniter Provider."
+
+- name: Validate Provider database settings
+  ansible.builtin.assert:
+    that:
+      - igniter_provider_pgpassword is defined
+      - igniter_provider_pgpassword not in igniter_provider_required_placeholders
+      - igniter_provider_pgpassword | length >= 16
+    fail_msg: "Set igniter_postgres_password or igniter_provider_pgpassword with a strong value."
+  no_log: true
+
+- name: Check existing Provider generated secrets
+  ansible.builtin.stat:
+    path: "{{ igniter_provider_secret_file }}"
+  register: igniter_provider_secret_file_stat
+  no_log: true
+
+- name: Generate Provider application secrets when missing
+  ansible.builtin.template:
+    src: generated-secrets.yml.j2
+    dest: "{{ igniter_provider_secret_file }}"
+    owner: root
+    group: pocket
+    mode: "0640"
+  when:
+    - igniter_provider_generate_missing_secrets | bool
+    - not igniter_provider_secret_file_stat.stat.exists
+  no_log: true
+
+- name: Load Provider generated secrets
+  ansible.builtin.include_vars:
+    file: "{{ igniter_provider_secret_file }}"
+    name: igniter_provider_generated_secrets
+  when: igniter_provider_secret_file_stat.stat.exists or igniter_provider_generate_missing_secrets | bool
+  no_log: true
+
+- name: Resolve effective Provider secrets
+  ansible.builtin.set_fact:
+    igniter_provider_effective_encryption_iv: "{{ igniter_provider_encryption_iv | default(igniter_provider_generated_secrets.encryption_iv | default(''), true) }}"
+    igniter_provider_effective_encryption_key: "{{ igniter_provider_encryption_key | default(igniter_provider_generated_secrets.encryption_key | default(''), true) }}"
+    igniter_provider_effective_auth_secret: "{{ igniter_provider_auth_secret | default(igniter_provider_generated_secrets.auth_secret | default(''), true) }}"
+  no_log: true
+
+- name: Validate Provider application secrets
+  ansible.builtin.assert:
+    that:
+      - igniter_provider_effective_encryption_iv not in igniter_provider_required_placeholders
+      - igniter_provider_effective_encryption_iv | length == 32
+      - igniter_provider_effective_encryption_key not in igniter_provider_required_placeholders
+      - igniter_provider_effective_encryption_key | length == 64
+      - igniter_provider_effective_auth_secret not in igniter_provider_required_placeholders
+      - igniter_provider_effective_auth_secret | length >= 48
+    fail_msg: >-
+      Provide igniter_provider_encryption_iv, igniter_provider_encryption_key, and igniter_provider_auth_secret,
+      or keep igniter_provider_generate_missing_secrets=true to generate them on the managed host.
+  no_log: true
+
+- name: Clone Igniter repository for Provider deployment
+  ansible.builtin.git:
+    repo: "{{ igniter_repo_url }}"
+    dest: "{{ igniter_root }}"
+    version: "{{ igniter_repo_version }}"
+    update: true
+
+- name: Ensure Provider compose directory exists
+  ansible.builtin.file:
+    path: "{{ igniter_provider_compose_project_src }}"
+    state: directory
+    owner: igniter
+    group: pocket
+    mode: "0750"
+
+- name: Ensure Igniter Docker network exists
+  community.docker.docker_network:
+    name: igniter
+    state: present
+
+- name: Render Provider environment file
+  ansible.builtin.template:
+    src: provider.env.j2
+    dest: "{{ igniter_provider_env_path }}"
+    owner: igniter
+    group: pocket
+    mode: "0640"
+  no_log: true
+
+- name: Render Provider compose override
+  ansible.builtin.template:
+    src: docker-compose.override.yaml.j2
+    dest: "{{ igniter_provider_compose_project_src }}/docker-compose.override.yaml"
+    owner: igniter
+    group: pocket
+    mode: "0640"
+
+- name: Deploy Igniter Provider compose stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ igniter_provider_compose_project_src }}"
+    state: present
+    pull: missing
+
+- name: Validate Provider health endpoint
+  ansible.builtin.uri:
+    url: "{{ igniter_provider_healthcheck_url }}"
+    method: GET
+    status_code: 200
+  register: igniter_provider_healthcheck
+  retries: "{{ igniter_provider_healthcheck_retries }}"
+  delay: "{{ igniter_provider_healthcheck_delay }}"
+  until: igniter_provider_healthcheck.status == 200
+  when: igniter_provider_healthcheck_enabled | bool
+
+- name: Write Provider bootstrap report
+  ansible.builtin.template:
+    src: bootstrap-report.md.j2
+    dest: "{{ igniter_provider_bootstrap_report_path }}"
+    owner: root
+    group: pocket
+    mode: "0640"

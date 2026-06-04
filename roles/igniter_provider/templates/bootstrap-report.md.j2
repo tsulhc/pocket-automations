@@ -1,0 +1,31 @@
+# Igniter Provider Bootstrap Report
+
+Provider infrastructure has been deployed by Ansible. Supplier staking and lifecycle operations continue inside Igniter Provider.
+
+## Access
+
+- Admin URL: {{ igniter_provider_app_url }}/admin/setup
+- Local health URL: {{ igniter_provider_healthcheck_url }}
+- Provider public API domain: {{ provider_public_api_domain | default('not configured') }}
+
+## Bootstrap Values
+
+- Pocket RPC URL: {{ pocket_rpc_url }}
+- Pocket chain ID: {{ pocket_chain_id }}
+- Provider owner identity: {{ igniter_provider_owner_identity }}
+- Provider owner email: {{ igniter_provider_owner_email }}
+- Minimum stake buffer: {{ igniter_provider_minimum_stake_buffer }} uPOKT
+- Delegators CDN URL: {{ igniter_provider_delegators_cdn_url }}
+
+## Required Manual Workflow
+
+1. Open the Provider setup URL.
+2. Sign in with the wallet matching `OWNER_IDENTITY`.
+3. Complete the Bootstrap Wizard: blockchain settings, identity, regions, relay miners, services, address groups, and delegators.
+4. Use Igniter Provider to manage supplier staking, updates, unstaking, and key lifecycle.
+
+## Security Notes
+
+- Do not expose the Provider admin UI publicly.
+- Expose Provider API publicly only through the documented allowlist when Middleman is enabled.
+- Keep `/api/auth/*`, `/admin/*`, `/_next/*`, PostgreSQL, Temporal, Redis, and pprof endpoints private.
