@@ -1,0 +1,6 @@
+---
+- name: Validate Pocket provider infrastructure
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: validation

@@ -1,0 +1,45 @@
+---
+- name: Deploy Pocket provider infrastructure
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: common
+    - role: docker
+
+- name: Deploy Igniter dependencies
+  hosts: postgres_hosts:temporal_hosts
+  gather_facts: true
+  roles:
+    - role: igniter_dependencies
+
+- name: Deploy Igniter Provider
+  hosts: provider_hosts
+  gather_facts: true
+  roles:
+    - role: pocketd
+    - role: igniter_provider
+
+- name: Deploy Redis for HA RelayMiner
+  hosts: redis_hosts
+  gather_facts: true
+  roles:
+    - role: redis
+
+- name: Deploy HA RelayMiner
+  hosts: relay_relayers:relay_miners
+  gather_facts: true
+  roles:
+    - role: ha_relayminer
+
+- name: Deploy optional Igniter Middleman
+  hosts: middleman_hosts
+  gather_facts: true
+  roles:
+    - role: igniter_middleman
+  when: igniter_middleman_enabled | bool
+
+- name: Deploy reverse proxy
+  hosts: reverse_proxy_hosts
+  gather_facts: true
+  roles:
+    - role: reverse_proxy
