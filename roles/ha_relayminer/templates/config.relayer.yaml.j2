@@ -1,0 +1,101 @@
+listen_addr: "{{ ha_relayminer_relayer_listen_addr }}"
+
+redis:
+  url: "{{ ha_relayminer_redis_url }}"
+
+pocket_node:
+  query_node_rpc_url: "{{ pocket_rpc_url }}"
+  query_node_grpc_url: "{{ pocket_grpc_address }}"
+  grpc_insecure: {{ ha_relayminer_grpc_insecure | bool | lower }}
+
+keys:
+{% if ha_relayminer_keys_mode == 'keys_file' %}
+  keys_file: "{{ ha_relayminer_keys_mount_path }}/supplier-keys.yaml"
+{% elif ha_relayminer_keys_mode == 'keys_dir' %}
+  keys_dir: "{{ ha_relayminer_keys_mount_path }}/suppliers"
+{% elif ha_relayminer_keys_mode == 'keyring' %}
+  keyring:
+    backend: "{{ ha_relayminer_keyring_backend }}"
+    dir: "{{ ha_relayminer_keys_mount_path }}/keyring"
+    app_name: "{{ ha_relayminer_keyring_app_name }}"
+{% if ha_relayminer_key_names | length > 0 %}
+    key_names:
+{% for key_name in ha_relayminer_key_names %}
+      - "{{ key_name }}"
+{% endfor %}
+{% endif %}
+{% endif %}
+
+services:
+{% for service in relay_services %}
+  {{ service.service_id }}:
+    validation_mode: "{{ service.validation_mode | default(ha_relayminer_default_validation_mode) }}"
+    timeout_profile: "{{ service.timeout_profile | default('fast') }}"
+    max_body_size_bytes: {{ service.max_body_size_bytes | default(ha_relayminer_default_max_body_size_bytes) }}
+    default_backend: "{{ service.default_backend }}"
+{% if service.pool_profile is defined %}
+    pool_profile: "{{ service.pool_profile }}"
+{% endif %}
+    backends:
+{% for backend_name, backend in service.backends.items() %}
+      {{ backend_name }}:
+{% if backend.load_balancing is defined %}
+        load_balancing: "{{ backend.load_balancing }}"
+{% endif %}
+{% if backend.urls is defined %}
+        urls:
+{% for backend_url in backend.urls %}
+{% if backend_url is mapping %}
+          - name: "{{ backend_url.name }}"
+            url: "{{ backend_url.url }}"
+{% else %}
+          - "{{ backend_url }}"
+{% endif %}
+{% endfor %}
+{% elif backend.url is defined %}
+        url: "{{ backend.url }}"
+{% endif %}
+{% if backend.headers is defined %}
+        headers:
+{% for header_name, header_value in backend.headers.items() %}
+          {{ header_name }}: "{{ header_value }}"
+{% endfor %}
+{% endif %}
+{% if backend.authentication is defined %}
+        authentication:
+{{ backend.authentication | to_nice_yaml(indent=10) | indent(10, false) }}
+{% endif %}
+{% if backend.health_check is defined %}
+        health_check:
+{{ backend.health_check | to_nice_yaml(indent=10) | indent(10, false) }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+default_validation_mode: "{{ ha_relayminer_default_validation_mode }}"
+default_request_timeout_seconds: {{ ha_relayminer_default_request_timeout_seconds }}
+default_max_body_size_bytes: {{ ha_relayminer_default_max_body_size_bytes }}
+
+metrics:
+  enabled: true
+  addr: "{{ ha_relayminer_relayer_metrics_addr }}"
+
+pprof:
+  enabled: {{ ha_relayminer_pprof_enabled | bool | lower }}
+  addr: "{{ ha_relayminer_pprof_addr }}"
+
+health_check:
+  enabled: true
+  addr: "{{ ha_relayminer_relayer_health_addr }}"
+
+relay_meter:
+  enabled: {{ ha_relayminer_relay_meter_enabled | bool | lower }}
+  redis_key_prefix: "ha"
+  fail_behavior: "{{ ha_relayminer_relay_meter_fail_behavior }}"
+  cache_ttl: {{ ha_relayminer_relay_meter_cache_ttl }}
+
+logging:
+  level: "{{ ha_relayminer_logging_level }}"
+  format: "{{ ha_relayminer_logging_format }}"
+  output: "stdout"
+  enable_caller: false

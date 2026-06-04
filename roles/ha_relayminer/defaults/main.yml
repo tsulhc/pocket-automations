@@ -1,0 +1,71 @@
+---
+ha_relayminer_enabled: true
+
+ha_relayminer_install_mode: docker_build
+ha_relayminer_repo_url: https://github.com/pokt-network/pocket-relay-miner.git
+ha_relayminer_repo_version: main
+ha_relayminer_root: /opt/pocket-relay-miner/source
+ha_relayminer_config_dir: /etc/pocket-automations/ha-relayminer
+ha_relayminer_keys_mount_path: /keys
+ha_relayminer_report_path: /var/lib/pocket-automations/ha-relayminer-readiness.md
+
+ha_relayminer_image_name: pocket-relay-miner
+ha_relayminer_image_tag: local
+ha_relayminer_compose_project_name: ha-relayminer
+ha_relayminer_compose_path: "{{ ha_relayminer_config_dir }}/docker-compose.yaml"
+ha_relayminer_network_mode: host
+
+ha_relayminer_enable_relayer: "{{ inventory_hostname in groups.get('relay_relayers', []) }}"
+ha_relayminer_enable_miner: "{{ inventory_hostname in groups.get('relay_miners', []) }}"
+
+ha_relayminer_redis_url: "{{ redis_url | default('redis://' ~ redis_bind_address | default('127.0.0.1') ~ ':' ~ redis_port | default(6379)) }}"
+
+ha_relayminer_relayer_listen_addr: 0.0.0.0:8080
+ha_relayminer_relayer_health_addr: 0.0.0.0:8081
+ha_relayminer_relayer_metrics_addr: 0.0.0.0:9090
+ha_relayminer_relayer_health_url: http://127.0.0.1:8081
+ha_relayminer_relayer_metrics_url: http://127.0.0.1:9090/metrics
+
+ha_relayminer_miner_metrics_addr: :9092
+ha_relayminer_miner_metrics_url: http://127.0.0.1:9092/metrics
+
+ha_relayminer_grpc_insecure: false
+ha_relayminer_query_timeout_seconds: 5
+ha_relayminer_block_time_seconds: 30
+
+ha_relayminer_keys_mode: keyring
+ha_relayminer_keys_file: "{{ ha_relayminer_config_dir }}/keys/supplier-keys.yaml"
+ha_relayminer_keys_dir: "{{ ha_relayminer_config_dir }}/keys/suppliers"
+ha_relayminer_keyring_backend: file
+ha_relayminer_keyring_dir: "{{ ha_relayminer_config_dir }}/keys/keyring"
+ha_relayminer_keyring_app_name: pocket
+ha_relayminer_key_names: []
+
+ha_relayminer_default_validation_mode: optimistic
+ha_relayminer_default_request_timeout_seconds: 30
+ha_relayminer_default_max_body_size_bytes: 10485760
+ha_relayminer_default_service_factor: 0.01
+
+ha_relayminer_logging_level: info
+ha_relayminer_logging_format: json
+ha_relayminer_pprof_enabled: false
+ha_relayminer_pprof_addr: 127.0.0.1:6060
+
+ha_relayminer_relay_meter_enabled: true
+ha_relayminer_relay_meter_fail_behavior: open
+ha_relayminer_relay_meter_cache_ttl: 2h
+
+ha_relayminer_miner_balance_monitor_enabled: true
+ha_relayminer_miner_balance_threshold_upokt: 1000000
+ha_relayminer_supplier_reconcile_interval_seconds: 60
+ha_relayminer_supplier_claim_ttl_seconds: 90
+ha_relayminer_supplier_renew_rate_seconds: 10
+ha_relayminer_supplier_rebalance_interval_seconds: 30
+
+ha_relayminer_healthcheck_retries: 20
+ha_relayminer_healthcheck_delay: 6
+ha_relayminer_backend_check_timeout: 10
+ha_relayminer_validate_backends: true
+ha_relayminer_backend_checks: []
+
+relay_services: []

@@ -1,0 +1,190 @@
+---
+- name: Skip HA RelayMiner when disabled
+  ansible.builtin.meta: end_host
+  when: not ha_relayminer_enabled | bool
+
+- name: Validate HA RelayMiner install mode
+  ansible.builtin.assert:
+    that:
+      - ha_relayminer_install_mode in ['docker_build']
+    fail_msg: "Initial HA RelayMiner support only implements ha_relayminer_install_mode=docker_build."
+
+- name: Validate at least one HA RelayMiner component is enabled on this host
+  ansible.builtin.assert:
+    that:
+      - ha_relayminer_enable_relayer | bool or ha_relayminer_enable_miner | bool
+    fail_msg: "Host must be in relay_relayers, relay_miners, or both to run ha_relayminer."
+
+- name: Validate HA RelayMiner network settings
+  ansible.builtin.assert:
+    that:
+      - ha_relayminer_network_mode in ['host']
+      - ha_relayminer_redis_url is defined
+      - ha_relayminer_redis_url is match('^redis')
+      - pocket_rpc_url is defined
+      - pocket_rpc_url is match('^https?://')
+      - pocket_grpc_address is defined
+      - pocket_grpc_address | length > 0
+      - pocket_chain_id is defined
+      - pocket_chain_id | length > 0
+    fail_msg: "Set Redis, Pocket RPC/gRPC, and chain ID settings before deploying HA RelayMiner."
+
+- name: Validate HA RelayMiner keys mode
+  ansible.builtin.assert:
+    that:
+      - ha_relayminer_keys_mode in ['keyring', 'keys_file', 'keys_dir']
+    fail_msg: "ha_relayminer_keys_mode must be keyring, keys_file, or keys_dir."
+
+- name: Validate relayer service configuration
+  ansible.builtin.assert:
+    that:
+      - relay_services | length > 0
+      - item.service_id is defined
+      - item.service_id | length > 0
+      - item.default_backend is defined
+      - item.backends is defined
+      - item.default_backend in item.backends
+    fail_msg: "Each relay service needs service_id, default_backend, and matching backends."
+  loop: "{{ relay_services }}"
+  when: ha_relayminer_enable_relayer | bool
+
+- name: Validate pprof is not bound publicly when enabled
+  ansible.builtin.assert:
+    that:
+      - not ha_relayminer_pprof_enabled | bool or ha_relayminer_pprof_addr is match('^(127\.0\.0\.1|localhost)')
+    fail_msg: "pprof must be disabled or bound to localhost."
+
+- name: Create HA RelayMiner directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: "{{ item.owner }}"
+    group: pocket
+    mode: "{{ item.mode }}"
+    state: directory
+  loop:
+    - path: "{{ ha_relayminer_config_dir }}"
+      owner: root
+      mode: "0750"
+    - path: "{{ ha_relayminer_config_dir }}/keys"
+      owner: relayminer
+      mode: "0750"
+    - path: "{{ ha_relayminer_keyring_dir }}"
+      owner: relayminer
+      mode: "0750"
+    - path: "{{ ha_relayminer_keys_dir }}"
+      owner: relayminer
+      mode: "0750"
+
+- name: Clone pocket-relay-miner source
+  ansible.builtin.git:
+    repo: "{{ ha_relayminer_repo_url }}"
+    dest: "{{ ha_relayminer_root }}"
+    version: "{{ ha_relayminer_repo_version }}"
+    update: true
+
+- name: Build HA RelayMiner Docker image
+  community.docker.docker_image:
+    name: "{{ ha_relayminer_image_name }}"
+    tag: "{{ ha_relayminer_image_tag }}"
+    source: build
+    build:
+      path: "{{ ha_relayminer_root }}"
+      pull: true
+
+- name: Render relayer configuration
+  ansible.builtin.template:
+    src: config.relayer.yaml.j2
+    dest: "{{ ha_relayminer_config_dir }}/config.relayer.yaml"
+    owner: root
+    group: pocket
+    mode: "0640"
+  when: ha_relayminer_enable_relayer | bool
+  no_log: true
+
+- name: Render miner configuration
+  ansible.builtin.template:
+    src: config.miner.yaml.j2
+    dest: "{{ ha_relayminer_config_dir }}/config.miner.yaml"
+    owner: root
+    group: pocket
+    mode: "0640"
+  when: ha_relayminer_enable_miner | bool
+  no_log: true
+
+- name: Render HA RelayMiner Docker Compose file
+  ansible.builtin.template:
+    src: docker-compose.yaml.j2
+    dest: "{{ ha_relayminer_compose_path }}"
+    owner: root
+    group: pocket
+    mode: "0640"
+
+- name: Start HA RelayMiner services
+  community.docker.docker_compose_v2:
+    project_src: "{{ ha_relayminer_config_dir }}"
+    project_name: "{{ ha_relayminer_compose_project_name }}"
+    state: present
+
+- name: Validate relayer health endpoint
+  ansible.builtin.uri:
+    url: "{{ ha_relayminer_relayer_health_url }}"
+    method: GET
+    status_code: 200
+  register: ha_relayminer_relayer_healthcheck
+  retries: "{{ ha_relayminer_healthcheck_retries }}"
+  delay: "{{ ha_relayminer_healthcheck_delay }}"
+  until: ha_relayminer_relayer_healthcheck.status == 200
+  when: ha_relayminer_enable_relayer | bool
+
+- name: Validate relayer metrics endpoint
+  ansible.builtin.uri:
+    url: "{{ ha_relayminer_relayer_metrics_url }}"
+    method: GET
+    status_code: 200
+  register: ha_relayminer_relayer_metrics_check
+  retries: "{{ ha_relayminer_healthcheck_retries }}"
+  delay: "{{ ha_relayminer_healthcheck_delay }}"
+  until: ha_relayminer_relayer_metrics_check.status == 200
+  when: ha_relayminer_enable_relayer | bool
+
+- name: Validate configured HTTP backend checks from relayer host
+  ansible.builtin.uri:
+    url: "{{ item.url }}"
+    method: "{{ item.method | default('GET') }}"
+    status_code: "{{ item.status_code | default(200) }}"
+    timeout: "{{ ha_relayminer_backend_check_timeout }}"
+  loop: "{{ ha_relayminer_backend_checks }}"
+  when:
+    - ha_relayminer_enable_relayer | bool
+    - ha_relayminer_validate_backends | bool
+    - item.type | default('http') == 'http'
+
+- name: Validate configured TCP backend checks from relayer host
+  ansible.builtin.wait_for:
+    host: "{{ item.host }}"
+    port: "{{ item.port }}"
+    timeout: "{{ ha_relayminer_backend_check_timeout }}"
+  loop: "{{ ha_relayminer_backend_checks }}"
+  when:
+    - ha_relayminer_enable_relayer | bool
+    - ha_relayminer_validate_backends | bool
+    - item.type | default('http') == 'tcp'
+
+- name: Validate miner metrics endpoint
+  ansible.builtin.uri:
+    url: "{{ ha_relayminer_miner_metrics_url }}"
+    method: GET
+    status_code: 200
+  register: ha_relayminer_miner_metrics_check
+  retries: "{{ ha_relayminer_healthcheck_retries }}"
+  delay: "{{ ha_relayminer_healthcheck_delay }}"
+  until: ha_relayminer_miner_metrics_check.status == 200
+  when: ha_relayminer_enable_miner | bool
+
+- name: Write HA RelayMiner readiness report
+  ansible.builtin.template:
+    src: readiness-report.md.j2
+    dest: "{{ ha_relayminer_report_path }}"
+    owner: root
+    group: pocket
+    mode: "0640"

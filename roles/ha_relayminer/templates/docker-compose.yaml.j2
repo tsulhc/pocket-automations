@@ -1,0 +1,23 @@
+services:
+{% if ha_relayminer_enable_relayer | bool %}
+  ha-relayminer-relayer:
+    image: "{{ ha_relayminer_image_name }}:{{ ha_relayminer_image_tag }}"
+    container_name: ha-relayminer-relayer
+    restart: unless-stopped
+    network_mode: "{{ ha_relayminer_network_mode }}"
+    command: ["relayer", "--config", "{{ ha_relayminer_config_dir }}/config.relayer.yaml"]
+    volumes:
+      - "{{ ha_relayminer_config_dir }}:{{ ha_relayminer_config_dir }}:ro"
+      - "{{ ha_relayminer_config_dir }}/keys:{{ ha_relayminer_keys_mount_path }}:ro"
+{% endif %}
+{% if ha_relayminer_enable_miner | bool %}
+  ha-relayminer-miner:
+    image: "{{ ha_relayminer_image_name }}:{{ ha_relayminer_image_tag }}"
+    container_name: ha-relayminer-miner
+    restart: unless-stopped
+    network_mode: "{{ ha_relayminer_network_mode }}"
+    command: ["miner", "--config", "{{ ha_relayminer_config_dir }}/config.miner.yaml"]
+    volumes:
+      - "{{ ha_relayminer_config_dir }}:{{ ha_relayminer_config_dir }}:ro"
+      - "{{ ha_relayminer_config_dir }}/keys:{{ ha_relayminer_keys_mount_path }}:ro"
+{% endif %}

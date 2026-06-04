@@ -1,0 +1,43 @@
+# HA RelayMiner Readiness Report
+
+Host: `{{ inventory_hostname }}`
+
+## Enabled Components
+
+- Relayer: {{ ha_relayminer_enable_relayer | bool }}
+- Miner: {{ ha_relayminer_enable_miner | bool }}
+
+## Runtime
+
+- Install mode: {{ ha_relayminer_install_mode }}
+- Image: {{ ha_relayminer_image_name }}:{{ ha_relayminer_image_tag }}
+- Network mode: {{ ha_relayminer_network_mode }}
+- Redis URL: {{ ha_relayminer_redis_url }}
+- Pocket RPC URL: {{ pocket_rpc_url }}
+- Pocket gRPC address: {{ pocket_grpc_address }}
+- Chain ID: {{ pocket_chain_id }}
+
+## Operator Tasks Outside Ansible
+
+1. Ensure supplier operator keys are present at the configured key source.
+2. Use Igniter Provider to configure regions, relay miners, services, address groups, delegators, and supplier staking.
+3. Keep supplier/operator accounts funded for claim and proof fees.
+4. Expose relayer ingress only through the intended reverse proxy or load balancer.
+
+## Local Checks
+
+{% if ha_relayminer_enable_relayer | bool %}
+- Relayer health: {{ ha_relayminer_relayer_health_url }}
+- Relayer metrics: {{ ha_relayminer_relayer_metrics_url }}
+{% endif %}
+{% if ha_relayminer_enable_miner | bool %}
+- Miner metrics: {{ ha_relayminer_miner_metrics_url }}
+{% endif %}
+{% if ha_relayminer_backend_checks | length > 0 %}
+
+## Backend Checks
+
+{% for check in ha_relayminer_backend_checks %}
+- {{ check.name | default(check.url | default(check.host ~ ':' ~ check.port)) }}: {{ check.type | default('http') }}
+{% endfor %}
+{% endif %}
