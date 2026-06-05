@@ -1,0 +1,11 @@
+services:
+  middleman-migration:
+    image: "ghcr.io/pokt-network/middleman:{{ igniter_middleman_image_tag }}"
+
+  middleman-web:
+    image: "ghcr.io/pokt-network/middleman:{{ igniter_middleman_image_tag }}"
+    ports:
+      - "{{ igniter_middleman_host }}:{{ igniter_middleman_port }}:3000"
+
+  middleman-workflows:
+    image: "ghcr.io/pokt-network/middleman-workflows:{{ igniter_middleman_image_tag }}"

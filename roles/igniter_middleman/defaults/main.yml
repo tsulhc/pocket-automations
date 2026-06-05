@@ -1,0 +1,65 @@
+---
+igniter_middleman_enabled: false
+igniter_repo_url: https://github.com/pokt-network/igniter.git
+igniter_repo_version: main
+igniter_root: /opt/igniter/source
+igniter_middleman_compose_project_src: "{{ igniter_root }}/docker-compose/apps/middleman"
+igniter_middleman_env_path: "{{ igniter_middleman_compose_project_src }}/.env"
+igniter_middleman_secret_file: /etc/pocket-automations/igniter-middleman-secrets.yml
+igniter_middleman_bootstrap_report_path: /var/lib/pocket-automations/igniter-middleman-bootstrap.md
+
+igniter_middleman_compose_project_name: igniter-middleman
+igniter_middleman_image_tag: latest
+igniter_middleman_log_level: info
+igniter_middleman_node_env: production
+
+igniter_middleman_host: 127.0.0.1
+igniter_middleman_port: 3000
+igniter_middleman_scheme: https
+igniter_middleman_app_url: "{{ igniter_middleman_scheme }}://{{ middleman_domain }}"
+igniter_middleman_auth_url: "{{ igniter_middleman_app_url }}"
+igniter_middleman_auth_trust_host: "{{ igniter_middleman_app_url }}"
+
+igniter_middleman_temporal_namespace: middleman
+igniter_middleman_temporal_task_queue: middleman-operations
+igniter_middleman_temporal_workflow_retention: 604800
+
+igniter_middleman_db_name: middleman
+igniter_middleman_pguser: "{{ igniter_postgres_user | default('igniter') }}"
+igniter_middleman_pgpassword: "{{ igniter_postgres_password | default('VAULT_OR_SECRET_MANAGER_VALUE') }}"
+igniter_middleman_pghost: "{{ 'postgresql' if postgres_deployment_mode | default('docker') == 'docker' else postgres_external_host | default('postgres.example.internal') }}"
+igniter_middleman_pgport: "{{ 5432 if postgres_deployment_mode | default('docker') == 'docker' else postgres_external_port | default(5432) }}"
+igniter_middleman_database_sslmode: disable
+igniter_middleman_database_url: "postgres://{{ igniter_middleman_pguser }}:{{ igniter_middleman_pgpassword }}@{{ igniter_middleman_pghost }}:{{ igniter_middleman_pgport }}/{{ igniter_middleman_db_name }}?sslmode={{ igniter_middleman_database_sslmode }}"
+
+igniter_middleman_temporal_url: "{{ 'temporal:7233' if temporal_deployment_mode | default('docker') == 'docker' else (temporal_external_host | default('temporal.example.internal')) ~ ':' ~ (temporal_external_port | default(7233)) }}"
+
+igniter_middleman_blockchain_protocol: shannon
+igniter_middleman_minimum_stake_buffer: "500000000"
+igniter_middleman_providers_cdn_url: "https://raw.githubusercontent.com/stake-igniter/governace/refs/heads/main/{chainId}/provider.json"
+
+igniter_middleman_owner_identity: "{{ igniter_provider_owner_identity | default('pokt1replacewithowneraddress') }}"
+igniter_middleman_owner_email: "{{ igniter_provider_owner_email | default('ops@example.com') }}"
+igniter_middleman_app_identity: VAULT_OR_SECRET_MANAGER_VALUE
+igniter_middleman_coin_market_cap_api_key: ""
+
+igniter_middleman_generate_missing_secrets: true
+igniter_middleman_auth_secret: ""
+
+igniter_middleman_required_placeholders:
+  - ""
+  - CHANGEME
+  - CHANGEME=
+  - VAULT_OR_SECRET_MANAGER_VALUE
+  - pokt1replacewithowneraddress
+
+igniter_middleman_healthcheck_enabled: true
+igniter_middleman_healthcheck_url: "http://{{ igniter_middleman_host }}:{{ igniter_middleman_port }}/api/health"
+igniter_middleman_healthcheck_retries: 20
+igniter_middleman_healthcheck_delay: 6
+
+igniter_middleman_provider_api_validation_enabled: "{{ reverse_proxy_provider_public_api_enabled | default(false) | bool }}"
+igniter_middleman_provider_api_health_url: "https://{{ provider_public_api_domain }}/api/health"
+igniter_middleman_provider_api_status_url: "https://{{ provider_public_api_domain }}/api/status"
+igniter_middleman_provider_api_validation_retries: 12
+igniter_middleman_provider_api_validation_delay: 5

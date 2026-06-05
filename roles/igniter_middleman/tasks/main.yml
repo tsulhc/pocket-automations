@@ -1,0 +1,164 @@
+---
+- name: Skip Igniter Middleman when disabled
+  ansible.builtin.meta: end_host
+  when: not igniter_middleman_enabled | bool
+
+- name: Validate required Middleman identity settings
+  ansible.builtin.assert:
+    that:
+      - igniter_middleman_owner_identity is defined
+      - igniter_middleman_owner_identity not in igniter_middleman_required_placeholders
+      - igniter_middleman_owner_identity is match('^pokt1')
+      - igniter_middleman_owner_email is defined
+      - igniter_middleman_owner_email not in igniter_middleman_required_placeholders
+      - igniter_middleman_owner_email is search('@')
+      - igniter_middleman_app_identity is defined
+      - igniter_middleman_app_identity not in igniter_middleman_required_placeholders
+    fail_msg: >-
+      Set igniter_middleman_owner_identity, igniter_middleman_owner_email, and igniter_middleman_app_identity
+      through inventory, Ansible Vault, or an external secret manager before deploying Middleman.
+  no_log: true
+
+- name: Validate Middleman network settings
+  ansible.builtin.assert:
+    that:
+      - pocket_rpc_url is defined
+      - pocket_rpc_url is match('^https?://')
+      - pocket_chain_id is defined
+      - pocket_chain_id | length > 0
+      - middleman_domain is defined
+      - middleman_domain | length > 0
+    fail_msg: "Set pocket_rpc_url, pocket_chain_id, and middleman_domain for Igniter Middleman."
+
+- name: Validate Middleman database settings
+  ansible.builtin.assert:
+    that:
+      - igniter_middleman_pgpassword is defined
+      - igniter_middleman_pgpassword not in igniter_middleman_required_placeholders
+      - igniter_middleman_pgpassword | length >= 16
+    fail_msg: "Set igniter_postgres_password or igniter_middleman_pgpassword with a strong value."
+  no_log: true
+
+- name: Validate Provider integration settings for Middleman
+  ansible.builtin.assert:
+    that:
+      - provider_public_api_domain is defined
+      - provider_public_api_domain | length > 0
+      - reverse_proxy_provider_public_api_enabled | default(false) | bool
+    fail_msg: >-
+      Middleman requires provider_public_api_domain and reverse_proxy_provider_public_api_enabled=true
+      so Provider API is exposed through the allowlist.
+  when: igniter_middleman_provider_api_validation_enabled | bool
+
+- name: Check existing Middleman generated secrets
+  ansible.builtin.stat:
+    path: "{{ igniter_middleman_secret_file }}"
+  register: igniter_middleman_secret_file_stat
+  no_log: true
+
+- name: Generate Middleman application secrets when missing
+  ansible.builtin.template:
+    src: generated-secrets.yml.j2
+    dest: "{{ igniter_middleman_secret_file }}"
+    owner: root
+    group: pocket
+    mode: "0640"
+  when:
+    - igniter_middleman_generate_missing_secrets | bool
+    - not igniter_middleman_secret_file_stat.stat.exists
+  no_log: true
+
+- name: Load Middleman generated secrets
+  ansible.builtin.include_vars:
+    file: "{{ igniter_middleman_secret_file }}"
+    name: igniter_middleman_generated_secrets
+  when: igniter_middleman_secret_file_stat.stat.exists or igniter_middleman_generate_missing_secrets | bool
+  no_log: true
+
+- name: Resolve effective Middleman secrets
+  ansible.builtin.set_fact:
+    igniter_middleman_effective_auth_secret: "{{ igniter_middleman_auth_secret | default(igniter_middleman_generated_secrets.auth_secret | default(''), true) }}"
+  no_log: true
+
+- name: Validate Middleman application secrets
+  ansible.builtin.assert:
+    that:
+      - igniter_middleman_effective_auth_secret not in igniter_middleman_required_placeholders
+      - igniter_middleman_effective_auth_secret | length >= 48
+    fail_msg: >-
+      Provide igniter_middleman_auth_secret or keep igniter_middleman_generate_missing_secrets=true
+      to generate it on the managed host.
+  no_log: true
+
+- name: Clone Igniter repository for Middleman deployment
+  ansible.builtin.git:
+    repo: "{{ igniter_repo_url }}"
+    dest: "{{ igniter_root }}"
+    version: "{{ igniter_repo_version }}"
+    update: true
+
+- name: Ensure Middleman compose directory exists
+  ansible.builtin.file:
+    path: "{{ igniter_middleman_compose_project_src }}"
+    state: directory
+    owner: igniter
+    group: pocket
+    mode: "0750"
+
+- name: Ensure Igniter Docker network exists
+  community.docker.docker_network:
+    name: igniter
+    state: present
+
+- name: Render Middleman environment file
+  ansible.builtin.template:
+    src: middleman.env.j2
+    dest: "{{ igniter_middleman_env_path }}"
+    owner: igniter
+    group: pocket
+    mode: "0640"
+  no_log: true
+
+- name: Render Middleman compose override
+  ansible.builtin.template:
+    src: docker-compose.override.yaml.j2
+    dest: "{{ igniter_middleman_compose_project_src }}/docker-compose.override.yaml"
+    owner: igniter
+    group: pocket
+    mode: "0640"
+
+- name: Deploy Igniter Middleman compose stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ igniter_middleman_compose_project_src }}"
+    state: present
+    pull: missing
+
+- name: Validate Middleman health endpoint
+  ansible.builtin.uri:
+    url: "{{ igniter_middleman_healthcheck_url }}"
+    method: GET
+    status_code: 200
+  register: igniter_middleman_healthcheck
+  retries: "{{ igniter_middleman_healthcheck_retries }}"
+  delay: "{{ igniter_middleman_healthcheck_delay }}"
+  until: igniter_middleman_healthcheck.status == 200
+  when: igniter_middleman_healthcheck_enabled | bool
+
+- name: Validate Provider public API health for Middleman
+  ansible.builtin.uri:
+    url: "{{ igniter_middleman_provider_api_health_url }}"
+    method: GET
+    status_code: [200, 404]
+  register: igniter_middleman_provider_api_healthcheck
+  retries: "{{ igniter_middleman_provider_api_validation_retries }}"
+  delay: "{{ igniter_middleman_provider_api_validation_delay }}"
+  until: igniter_middleman_provider_api_healthcheck.status in [200, 404]
+  when: igniter_middleman_provider_api_validation_enabled | bool
+
+- name: Write Middleman bootstrap report
+  ansible.builtin.template:
+    src: bootstrap-report.md.j2
+    dest: "{{ igniter_middleman_bootstrap_report_path }}"
+    owner: root
+    group: pocket
+    mode: "0640"

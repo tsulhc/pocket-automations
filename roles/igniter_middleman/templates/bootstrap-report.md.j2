@@ -1,0 +1,33 @@
+# Igniter Middleman Bootstrap Report
+
+Middleman infrastructure has been deployed by Ansible. Delegator-facing staking workflows continue inside Igniter Middleman and Provider.
+
+## Access
+
+- Public URL: {{ igniter_middleman_app_url }}
+- Local health URL: {{ igniter_middleman_healthcheck_url }}
+- Provider public API URL: https://{{ provider_public_api_domain | default('not configured') }}
+
+## Bootstrap Values
+
+- Pocket RPC URL: {{ pocket_rpc_url }}
+- Pocket chain ID: {{ pocket_chain_id }}
+- Middleman owner identity: {{ igniter_middleman_owner_identity }}
+- Middleman owner email: {{ igniter_middleman_owner_email }}
+- Providers CDN URL: {{ igniter_middleman_providers_cdn_url }}
+- CoinMarketCap API key configured: {{ (igniter_middleman_coin_market_cap_api_key | length > 0) | bool }}
+
+## Required Manual Workflow
+
+1. Ensure Provider is bootstrapped and its public API allowlist is exposed through the reverse proxy.
+2. Open the Middleman setup/admin flow.
+3. Sign in with the wallet matching `OWNER_IDENTITY`.
+4. Configure provider discovery and delegator-facing settings.
+5. Use Middleman only for delegator-facing workflows; Provider remains the staking lifecycle source of truth.
+
+## Security Notes
+
+- Keep `APP_IDENTITY` in Ansible Vault or an external secret manager.
+- Do not expose Provider admin UI publicly.
+- Public Provider API must stay restricted to the allowlist required by Middleman.
+- CoinMarketCap API key is optional; without it, coin value display may be degraded.
