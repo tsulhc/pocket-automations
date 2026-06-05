@@ -1,0 +1,37 @@
+{
+{% if reverse_proxy_tls_email | length > 0 %}
+  email {{ reverse_proxy_tls_email }}
+{% endif %}
+  admin {{ reverse_proxy_caddy_admin }}
+}
+
+{% if reverse_proxy_relay_enabled | bool %}
+{{ reverse_proxy_relay_domain }} {
+  reverse_proxy {% for backend in reverse_proxy_relay_backends_effective %}{{ backend }}{% if not loop.last %} {% endif %}{% endfor %}
+}
+
+{% endif %}
+{% if reverse_proxy_provider_admin_enabled | bool %}
+{{ reverse_proxy_provider_admin_domain }} {
+  reverse_proxy {{ reverse_proxy_provider_backend }}
+}
+
+{% endif %}
+{% if reverse_proxy_provider_public_api_enabled | bool %}
+{{ reverse_proxy_provider_public_api_domain }} {
+  @provider_api_allowed path {% for allowed_path in reverse_proxy_provider_api_allowed_paths %}{{ allowed_path }}{% if not loop.last %} {% endif %}{% endfor %}
+  handle @provider_api_allowed {
+    reverse_proxy {{ reverse_proxy_provider_public_api_backend }}
+  }
+
+  handle {
+    respond "Forbidden" 403
+  }
+}
+
+{% endif %}
+{% if reverse_proxy_middleman_enabled | bool %}
+{{ reverse_proxy_middleman_domain }} {
+  reverse_proxy {{ reverse_proxy_middleman_backend }}
+}
+{% endif %}

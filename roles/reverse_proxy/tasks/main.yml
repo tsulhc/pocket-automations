@@ -1,0 +1,165 @@
+---
+- name: Skip reverse proxy when disabled
+  ansible.builtin.meta: end_host
+  when: not reverse_proxy_enabled | bool
+
+- name: Validate reverse proxy engine
+  ansible.builtin.assert:
+    that:
+      - reverse_proxy_engine == 'caddy'
+    fail_msg: "Initial reverse_proxy support only implements reverse_proxy_engine=caddy."
+
+- name: Compute relay backends from inventory when not explicitly set
+  ansible.builtin.set_fact:
+    reverse_proxy_relay_backends_effective: >-
+      {{ reverse_proxy_relay_backends if reverse_proxy_relay_backends | length > 0 else
+         groups.get('relay_relayers', []) |
+         map('extract', hostvars, ['ansible_host']) |
+         map('regex_replace', '^(.*)$', 'http://\\1:8080') |
+         list }}
+
+- name: Validate public relay routing inputs
+  ansible.builtin.assert:
+    that:
+      - reverse_proxy_relay_domain | length > 0
+      - reverse_proxy_relay_backends_effective | length > 0
+    fail_msg: "Set reverse_proxy_relay_domain/relay_public_domain and at least one relay backend."
+  when: reverse_proxy_relay_enabled | bool
+
+- name: Validate Provider admin routing inputs
+  ansible.builtin.assert:
+    that:
+      - reverse_proxy_provider_admin_domain | length > 0
+      - reverse_proxy_provider_backend is match('^https?://')
+    fail_msg: "Set provider admin domain and backend before enabling Provider admin routing."
+  when: reverse_proxy_provider_admin_enabled | bool
+
+- name: Validate Provider public API routing inputs
+  ansible.builtin.assert:
+    that:
+      - reverse_proxy_provider_public_api_domain | length > 0
+      - reverse_proxy_provider_public_api_backend is match('^https?://')
+      - reverse_proxy_provider_api_allowed_paths | length > 0
+    fail_msg: "Set Provider public API domain/backend and allowlist before enabling public Provider API routing."
+  when: reverse_proxy_provider_public_api_enabled | bool
+
+- name: Validate Middleman routing inputs
+  ansible.builtin.assert:
+    that:
+      - reverse_proxy_middleman_domain | length > 0
+      - reverse_proxy_middleman_backend is match('^https?://')
+    fail_msg: "Set Middleman domain and backend before enabling Middleman routing."
+  when: reverse_proxy_middleman_enabled | bool
+
+- name: Validate TLS contact email for public endpoints
+  ansible.builtin.assert:
+    that:
+      - reverse_proxy_tls_email | length > 0
+      - reverse_proxy_tls_email is search('@')
+    fail_msg: "Set reverse_proxy_tls_email for Caddy ACME certificates."
+  when: reverse_proxy_tls_enabled | bool
+
+- name: Install Caddy repository
+  ansible.builtin.deb822_repository:
+    name: caddy
+    types: deb
+    uris: "{{ reverse_proxy_caddy_apt_repo_url }}"
+    suites: "{{ reverse_proxy_caddy_apt_suite }}"
+    components: "{{ reverse_proxy_caddy_apt_component }}"
+    signed_by: "{{ reverse_proxy_caddy_apt_key_url }}"
+    state: present
+    enabled: true
+  register: reverse_proxy_caddy_repo
+
+- name: Update apt cache after adding Caddy repository
+  ansible.builtin.apt:
+    update_cache: true
+  when: reverse_proxy_caddy_repo.changed
+
+- name: Install Caddy
+  ansible.builtin.apt:
+    name: caddy
+    state: present
+
+- name: Render Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ reverse_proxy_caddyfile_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: reverse_proxy_caddyfile
+
+- name: Validate Caddyfile
+  ansible.builtin.command:
+    cmd: "caddy validate --config {{ reverse_proxy_caddyfile_path }}"
+  changed_when: false
+
+- name: Enable and restart Caddy when configuration changed
+  ansible.builtin.systemd:
+    name: caddy
+    enabled: true
+    state: restarted
+  when: reverse_proxy_caddyfile.changed
+
+- name: Ensure Caddy is running
+  ansible.builtin.systemd:
+    name: caddy
+    enabled: true
+    state: started
+
+- name: Validate relay endpoint locally through Caddy
+  ansible.builtin.uri:
+    url: "https://{{ reverse_proxy_relay_domain }}"
+    method: GET
+    status_code: [200, 400, 404, 405]
+    timeout: "{{ reverse_proxy_healthcheck_timeout }}"
+    validate_certs: true
+  register: reverse_proxy_relay_check
+  retries: "{{ reverse_proxy_healthcheck_retries }}"
+  delay: "{{ reverse_proxy_healthcheck_delay }}"
+  until: reverse_proxy_relay_check.status in [200, 400, 404, 405]
+  when:
+    - reverse_proxy_validate_endpoints | bool
+    - reverse_proxy_relay_enabled | bool
+
+- name: Validate Provider public API health through Caddy
+  ansible.builtin.uri:
+    url: "https://{{ reverse_proxy_provider_public_api_domain }}/api/health"
+    method: GET
+    status_code: [200, 404]
+    timeout: "{{ reverse_proxy_healthcheck_timeout }}"
+    validate_certs: true
+  register: reverse_proxy_provider_api_check
+  retries: "{{ reverse_proxy_healthcheck_retries }}"
+  delay: "{{ reverse_proxy_healthcheck_delay }}"
+  until: reverse_proxy_provider_api_check.status in [200, 404]
+  when:
+    - reverse_proxy_validate_endpoints | bool
+    - reverse_proxy_provider_public_api_enabled | bool
+
+- name: Validate Provider public API blocks non-allowlisted paths
+  ansible.builtin.uri:
+    url: "https://{{ reverse_proxy_provider_public_api_domain }}/"
+    method: GET
+    status_code: 403
+    timeout: "{{ reverse_proxy_healthcheck_timeout }}"
+    validate_certs: true
+  when:
+    - reverse_proxy_validate_endpoints | bool
+    - reverse_proxy_provider_public_api_enabled | bool
+
+- name: Validate Middleman endpoint through Caddy
+  ansible.builtin.uri:
+    url: "https://{{ reverse_proxy_middleman_domain }}"
+    method: GET
+    status_code: [200, 404]
+    timeout: "{{ reverse_proxy_healthcheck_timeout }}"
+    validate_certs: true
+  register: reverse_proxy_middleman_check
+  retries: "{{ reverse_proxy_healthcheck_retries }}"
+  delay: "{{ reverse_proxy_healthcheck_delay }}"
+  until: reverse_proxy_middleman_check.status in [200, 404]
+  when:
+    - reverse_proxy_validate_endpoints | bool
+    - reverse_proxy_middleman_enabled | bool

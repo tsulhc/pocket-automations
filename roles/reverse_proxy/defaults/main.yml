@@ -1,0 +1,45 @@
+---
+reverse_proxy_enabled: true
+reverse_proxy_engine: caddy
+
+reverse_proxy_caddy_apt_key_url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
+reverse_proxy_caddy_apt_repo_url: https://dl.cloudsmith.io/public/caddy/stable/deb/debian
+reverse_proxy_caddy_apt_suite: any-version
+reverse_proxy_caddy_apt_component: main
+reverse_proxy_caddyfile_path: /etc/caddy/Caddyfile
+
+reverse_proxy_tls_email: "{{ igniter_provider_owner_email | default('') }}"
+reverse_proxy_tls_enabled: true
+reverse_proxy_caddy_admin: off
+
+reverse_proxy_relay_enabled: true
+reverse_proxy_relay_domain: "{{ relay_public_domain | default('') }}"
+reverse_proxy_relay_backends: []
+
+reverse_proxy_provider_admin_enabled: false
+reverse_proxy_provider_admin_domain: "{{ provider_domain | default('') }}"
+reverse_proxy_provider_backend: http://127.0.0.1:3001
+
+reverse_proxy_provider_public_api_enabled: "{{ igniter_middleman_enabled | default(false) | bool }}"
+reverse_proxy_provider_public_api_domain: "{{ provider_public_api_domain | default('') }}"
+reverse_proxy_provider_public_api_backend: "{{ reverse_proxy_provider_backend }}"
+reverse_proxy_provider_api_allowed_paths:
+  - /api/suppliers
+  - /api/suppliers/*
+  - /api/suppliers/stake
+  - /api/suppliers/unstaking
+  - /api/suppliers/release
+  - /api/import-suppliers
+  - /api/import-suppliers/*
+  - /api/status
+  - /api/health
+  - /api/bootstrap
+
+reverse_proxy_middleman_enabled: "{{ igniter_middleman_enabled | default(false) | bool }}"
+reverse_proxy_middleman_domain: "{{ middleman_domain | default('') }}"
+reverse_proxy_middleman_backend: http://127.0.0.1:3000
+
+reverse_proxy_validate_endpoints: true
+reverse_proxy_healthcheck_timeout: 10
+reverse_proxy_healthcheck_retries: 12
+reverse_proxy_healthcheck_delay: 5
