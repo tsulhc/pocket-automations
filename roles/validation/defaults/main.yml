@@ -1,0 +1,46 @@
+---
+validation_enabled: true
+validation_report_path: /var/lib/pocket-automations/validation-report.md
+validation_timeout: 10
+validation_retries: 3
+validation_delay: 3
+
+validation_supported_ubuntu_versions:
+  - "22.04"
+  - "24.04"
+
+validation_pocket_rpc_enabled: true
+validation_pocket_grpc_enabled: true
+validation_pocket_rpc_status_code:
+  - 200
+  - 400
+  - 404
+
+validation_docker_enabled: true
+validation_security_checks_enabled: true
+
+validation_provider_enabled: "{{ inventory_hostname in groups.get('provider_hosts', []) and igniter_provider_enabled | default(true) | bool }}"
+validation_middleman_enabled: "{{ inventory_hostname in groups.get('middleman_hosts', []) and igniter_middleman_enabled | default(false) | bool }}"
+validation_redis_enabled: "{{ inventory_hostname in groups.get('redis_hosts', []) }}"
+validation_relayer_enabled: "{{ inventory_hostname in groups.get('relay_relayers', []) and ha_relayminer_enabled | default(true) | bool }}"
+validation_miner_enabled: "{{ inventory_hostname in groups.get('relay_miners', []) and ha_relayminer_enabled | default(true) | bool }}"
+validation_reverse_proxy_enabled: "{{ inventory_hostname in groups.get('reverse_proxy_hosts', []) and reverse_proxy_enabled | default(true) | bool }}"
+
+validation_provider_health_url: "{{ igniter_provider_healthcheck_url | default('http://127.0.0.1:3001/api/health') }}"
+validation_provider_bootstrap_report_path: "{{ igniter_provider_bootstrap_report_path | default('/var/lib/pocket-automations/igniter-provider-bootstrap.md') }}"
+
+validation_middleman_health_url: "{{ igniter_middleman_healthcheck_url | default('http://127.0.0.1:3000/api/health') }}"
+validation_middleman_bootstrap_report_path: "{{ igniter_middleman_bootstrap_report_path | default('/var/lib/pocket-automations/igniter-middleman-bootstrap.md') }}"
+
+validation_relayer_health_url: "{{ ha_relayminer_relayer_health_url | default('http://127.0.0.1:8081') }}"
+validation_relayer_metrics_url: "{{ ha_relayminer_relayer_metrics_url | default('http://127.0.0.1:9090/metrics') }}"
+validation_miner_metrics_url: "{{ ha_relayminer_miner_metrics_url | default('http://127.0.0.1:9092/metrics') }}"
+validation_backend_checks: "{{ ha_relayminer_backend_checks | default([]) }}"
+
+validation_redis_url: "{{ ha_relayminer_redis_url | default(redis_url | default('redis://127.0.0.1:6379')) }}"
+validation_redis_host: "{{ (validation_redis_url | regex_replace('^redis://([^:/]+).*$', '\\1')) if validation_redis_url is match('^redis://') else '127.0.0.1' }}"
+validation_redis_port: "{{ (validation_redis_url | regex_replace('^redis://[^:/]+:([0-9]+).*$', '\\1')) if validation_redis_url is match('^redis://[^:/]+:[0-9]+') else 6379 }}"
+
+validation_reverse_proxy_relay_url: "https://{{ reverse_proxy_relay_domain | default(relay_public_domain | default('')) }}"
+validation_reverse_proxy_provider_api_url: "https://{{ reverse_proxy_provider_public_api_domain | default(provider_public_api_domain | default('')) }}"
+validation_reverse_proxy_middleman_url: "https://{{ reverse_proxy_middleman_domain | default(middleman_domain | default('')) }}"
