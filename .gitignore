@@ -1,0 +1,2 @@
+# Generated inventories may contain deployment secrets.
+inventories/generated/
