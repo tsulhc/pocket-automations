@@ -23,9 +23,32 @@ Igniter owns supplier staking and staking lifecycle operations. Ansible does not
 
 ## Documentation
 
+- [Beginner Deployment Guide](docs/beginner-guide.md)
+- [Setup Wizard](docs/setup-wizard.md)
 - [Technical Architecture](docs/technical-architecture.md)
 - [Igniter Role](docs/igniter-role.md)
 - [Implementation Roadmap](docs/roadmap.md)
+- [Validation Workflow](docs/validation.md)
+- [Post-Deploy Checklist](docs/post-deploy-checklist.md)
+- [Troubleshooting](docs/troubleshooting.md)
+
+## Quick Start
+
+Generate a guided production single-host inventory:
+
+```bash
+scripts/generate-inventory.sh
+```
+
+Then validate and deploy:
+
+```bash
+ansible-inventory -i inventories/generated/<host-name>/hosts.yml --list
+ansible-playbook -i inventories/generated/<host-name>/hosts.yml playbooks/site.yml
+ansible-playbook -i inventories/generated/<host-name>/hosts.yml playbooks/validate.yml
+```
+
+The generated profile enables both HA RelayMiner relayer and miner. Reward readiness still requires supplier keys, successful Igniter Provider bootstrap, and supplier lifecycle configuration in Igniter.
 
 ## Source Of Truth
 
