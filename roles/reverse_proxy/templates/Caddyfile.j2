@@ -7,7 +7,7 @@
 
 {% if reverse_proxy_relay_enabled | bool %}
 {{ reverse_proxy_relay_domain }} {
-  reverse_proxy {% for backend in reverse_proxy_relay_backends_effective %}{{ backend }}{% if not loop.last %} {% endif %}{% endfor %}
+  reverse_proxy {{ reverse_proxy_relay_backends_effective | join(' ') }}
 }
 
 {% endif %}
@@ -19,7 +19,7 @@
 {% endif %}
 {% if reverse_proxy_provider_public_api_enabled | bool %}
 {{ reverse_proxy_provider_public_api_domain }} {
-  @provider_api_allowed path {% for allowed_path in reverse_proxy_provider_api_allowed_paths %}{{ allowed_path }}{% if not loop.last %} {% endif %}{% endfor %}
+  @provider_api_allowed path {{ reverse_proxy_provider_api_allowed_paths | join(' ') }}
   handle @provider_api_allowed {
     reverse_proxy {{ reverse_proxy_provider_public_api_backend }}
   }
