@@ -32,7 +32,7 @@ validation_provider_bootstrap_report_path: "{{ igniter_provider_bootstrap_report
 validation_middleman_health_url: "{{ igniter_middleman_healthcheck_url | default('http://127.0.0.1:3000/api/health') }}"
 validation_middleman_bootstrap_report_path: "{{ igniter_middleman_bootstrap_report_path | default('/var/lib/pocket-automations/igniter-middleman-bootstrap.md') }}"
 
-validation_relayer_health_url: "{{ ha_relayminer_relayer_health_url | default('http://127.0.0.1:8081') }}"
+validation_relayer_health_url: "{{ ha_relayminer_relayer_health_url | default('http://127.0.0.1:8081/health') }}"
 validation_relayer_metrics_url: "{{ ha_relayminer_relayer_metrics_url | default('http://127.0.0.1:9090/metrics') }}"
 validation_miner_metrics_url: "{{ ha_relayminer_miner_metrics_url | default('http://127.0.0.1:9092/metrics') }}"
 validation_backend_checks: "{{ ha_relayminer_backend_checks | default([]) }}"
