@@ -105,6 +105,11 @@ write_inventory() {
   local service_backend_url="${23}"
   local backend_check_enabled="${24}"
   local backend_check_url="${25}"
+  local grafana_admin_password="${26}"
+  local grafana_public_enabled="${27}"
+  local grafana_domain="${28}"
+  local grafana_basic_auth_user="${29}"
+  local grafana_basic_auth_hash="${30}"
 
   mkdir -p "$(dirname "${output_file}")"
   cat > "${output_file}" <<YAML
@@ -135,6 +140,21 @@ all:
     reverse_proxy_provider_admin_enabled: false
     reverse_proxy_provider_public_api_enabled: false
     reverse_proxy_middleman_enabled: false
+    reverse_proxy_grafana_enabled: ${grafana_public_enabled}
+
+    monitoring_enabled: true
+    monitoring_grafana_admin_password: "$(yaml_escape "${grafana_admin_password}")"
+    monitoring_grafana_public_enabled: ${grafana_public_enabled}
+    monitoring_grafana_domain: "$(yaml_escape "${grafana_domain}")"
+    monitoring_grafana_public_basic_auth_user: "$(yaml_escape "${grafana_basic_auth_user}")"
+    monitoring_grafana_public_basic_auth_hash: "$(yaml_escape "${grafana_basic_auth_hash}")"
+    monitoring_scrape_jobs:
+      - job_name: ha-relayminer-relayer
+        targets:
+          - 127.0.0.1:9090
+      - job_name: ha-relayminer-miner
+        targets:
+          - 127.0.0.1:9092
 
     postgres_deployment_mode: docker
     temporal_deployment_mode: docker
@@ -246,6 +266,9 @@ YAML
     reverse_proxy_hosts:
       hosts:
         ${inventory_name}:
+    monitoring_hosts:
+      hosts:
+        ${inventory_name}:
     pocket_cli_hosts:
       hosts:
         ${inventory_name}:
@@ -257,6 +280,7 @@ main() {
   local provider_domain relay_domain tls_email owner_identity owner_email app_identity postgres_password
   local keys_mode keys_file keys_dir keyring_dir key_names service_id service_backend_url
   local backend_check_enabled backend_check_url output_file
+  local grafana_admin_password grafana_public_enabled grafana_domain grafana_basic_auth_user grafana_basic_auth_hash
 
   say "Pocket Automations inventory wizard"
   say "This wizard creates a production-single-host inventory with Provider, Redis, Temporal, HA RelayMiner relayer, and HA RelayMiner miner enabled."
@@ -320,12 +344,27 @@ main() {
     backend_check_url="$(ask_required "Backend readiness check URL" "${service_backend_url}")"
   fi
 
+  say ""
+  say "Monitoring deploys Prometheus and Grafana. Grafana is private by default and can be accessed with an SSH tunnel."
+  grafana_admin_password="$(ask_required "Grafana admin password or Vault placeholder" "VAULT_OR_SECRET_MANAGER_VALUE")"
+  grafana_public_enabled="$(ask_yes_no "Expose Grafana publicly through Caddy basic auth" "no")"
+  grafana_domain=""
+  grafana_basic_auth_user=""
+  grafana_basic_auth_hash=""
+  if [[ "${grafana_public_enabled}" == "true" ]]; then
+    grafana_domain="$(ask_required "Grafana public domain")"
+    grafana_basic_auth_user="$(ask_required "Grafana public basic auth user" "admin")"
+    say "Generate the bcrypt hash with: caddy hash-password --plaintext '<password>'"
+    grafana_basic_auth_hash="$(ask_required "Grafana public basic auth bcrypt hash")"
+  fi
+
   output_file="${OUTPUT_BASE}/${inventory_name}/hosts.yml"
   write_inventory "${output_file}" "${inventory_name}" "${ansible_host}" "${ansible_user}" "${ssh_key_path}" \
     "${network}" "${chain_id}" "${rpc_url}" "${grpc_address}" "${provider_domain}" "${relay_domain}" \
     "${tls_email}" "${owner_identity}" "${owner_email}" "${app_identity}" "${postgres_password}" \
     "${keys_mode}" "${keys_file}" "${keys_dir}" "${keyring_dir}" "${key_names}" "${service_id}" \
-    "${service_backend_url}" "${backend_check_enabled}" "${backend_check_url}"
+    "${service_backend_url}" "${backend_check_enabled}" "${backend_check_url}" "${grafana_admin_password}" \
+    "${grafana_public_enabled}" "${grafana_domain}" "${grafana_basic_auth_user}" "${grafana_basic_auth_hash}"
 
   say ""
   say "Inventory written to: ${output_file}"
@@ -335,6 +374,11 @@ main() {
   say "  ansible-playbook -i ${output_file} playbooks/site.yml"
   say "  ansible-playbook -i ${output_file} playbooks/validate.yml"
   say ""
+  if [[ "${grafana_public_enabled}" == "true" ]]; then
+    say "Grafana will be available at: https://${grafana_domain}"
+  else
+    say "Grafana is private. After deploy, use: ssh -L 3002:127.0.0.1:3002 ${ansible_user}@${ansible_host}"
+  fi
   say "Reward readiness still requires successful Igniter Provider bootstrap and supplier lifecycle configuration in Igniter."
 }
 

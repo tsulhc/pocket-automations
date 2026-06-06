@@ -46,6 +46,9 @@ The wizard asks for:
 - backend service ID;
 - backend URL;
 - optional backend readiness check URL.
+- Grafana admin password or secret placeholder;
+- whether Grafana should be exposed publicly;
+- Grafana public domain and Caddy basic auth hash when public access is enabled.
 
 ## Secret Handling
 
@@ -58,6 +61,12 @@ VAULT_OR_SECRET_MANAGER_VALUE
 Use real secrets only if your generated inventory is protected. For production, prefer Ansible Vault or an external secret manager.
 
 The wizard does not create, copy, import, or validate supplier private keys. It only records where HA RelayMiner should find them on the target host.
+
+The wizard can enable public Grafana routing, but it requires a Caddy bcrypt hash. Generate it with:
+
+```bash
+caddy hash-password --plaintext '<password>'
+```
 
 ## Key Source Modes
 
