@@ -64,7 +64,7 @@
   loop:
     - path: "{{ ha_relayminer_config_dir }}"
       owner: root
-      mode: "0750"
+      mode: "0755"
     - path: "{{ ha_relayminer_config_dir }}/keys"
       owner: relayminer
       mode: "0750"
@@ -90,6 +90,8 @@
     build:
       path: "{{ ha_relayminer_root }}"
       pull: true
+      args:
+        TARGETARCH: "{{ ha_relayminer_targetarch }}"
 
 - name: Render relayer configuration
   ansible.builtin.template:
@@ -97,7 +99,7 @@
     dest: "{{ ha_relayminer_config_dir }}/config.relayer.yaml"
     owner: root
     group: pocket
-    mode: "0640"
+    mode: "0644"
   when: ha_relayminer_enable_relayer | bool
   no_log: true
 
@@ -107,7 +109,7 @@
     dest: "{{ ha_relayminer_config_dir }}/config.miner.yaml"
     owner: root
     group: pocket
-    mode: "0640"
+    mode: "0644"
   when: ha_relayminer_enable_miner | bool
   no_log: true
 
@@ -117,13 +119,14 @@
     dest: "{{ ha_relayminer_compose_path }}"
     owner: root
     group: pocket
-    mode: "0640"
+    mode: "0644"
 
 - name: Start HA RelayMiner services
   community.docker.docker_compose_v2:
     project_src: "{{ ha_relayminer_config_dir }}"
     project_name: "{{ ha_relayminer_compose_project_name }}"
     state: present
+    remove_orphans: true
 
 - name: Validate relayer health endpoint
   ansible.builtin.uri:

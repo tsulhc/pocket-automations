@@ -11,6 +11,11 @@ ha_relayminer_report_path: /var/lib/pocket-automations/ha-relayminer-readiness.m
 
 ha_relayminer_image_name: pocket-relay-miner
 ha_relayminer_image_tag: local
+ha_relayminer_targetarch_map:
+  x86_64: amd64
+  aarch64: arm64
+  arm64: arm64
+ha_relayminer_targetarch: "{{ ha_relayminer_targetarch_map.get(ansible_facts['architecture'], ansible_facts['architecture']) }}"
 ha_relayminer_compose_project_name: ha-relayminer
 ha_relayminer_compose_path: "{{ ha_relayminer_config_dir }}/docker-compose.yaml"
 ha_relayminer_network_mode: host
@@ -23,7 +28,7 @@ ha_relayminer_redis_url: "{{ redis_url | default('redis://' ~ redis_bind_address
 ha_relayminer_relayer_listen_addr: 0.0.0.0:8080
 ha_relayminer_relayer_health_addr: 0.0.0.0:8081
 ha_relayminer_relayer_metrics_addr: 0.0.0.0:9090
-ha_relayminer_relayer_health_url: http://127.0.0.1:8081
+ha_relayminer_relayer_health_url: http://127.0.0.1:8081/health
 ha_relayminer_relayer_metrics_url: http://127.0.0.1:9090/metrics
 
 ha_relayminer_miner_metrics_addr: :9092
