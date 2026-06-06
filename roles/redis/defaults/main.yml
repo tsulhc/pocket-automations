@@ -4,6 +4,8 @@ redis_image: redis:8.4-alpine
 redis_container_name: pocket-redis
 redis_bind_address: 127.0.0.1
 redis_port: 6379
+redis_allow_public_bind: false
+redis_protected_mode: false
 redis_data_dir: /var/lib/pocket-automations/redis
 redis_config_dir: /etc/pocket-automations/redis
 redis_config_path: "{{ redis_config_dir }}/redis.conf"

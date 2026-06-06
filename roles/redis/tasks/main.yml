@@ -5,17 +5,30 @@
       - redis_deployment_mode in ['docker', 'external']
     fail_msg: "redis_deployment_mode must be docker or external."
 
+- name: Validate Docker Redis is not exposed publicly by default
+  ansible.builtin.assert:
+    that:
+      - redis_bind_address in ['127.0.0.1', 'localhost'] or redis_allow_public_bind | bool
+    fail_msg: >-
+      Docker Redis must bind to 127.0.0.1 by default. Set redis_allow_public_bind=true only when
+      network-level access controls and Redis authentication are handled externally.
+  when: redis_deployment_mode == 'docker'
+
 - name: Create Redis directories
   ansible.builtin.file:
     path: "{{ item.path }}"
-    owner: root
-    group: pocket
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
     mode: "{{ item.mode }}"
     state: directory
   loop:
     - path: "{{ redis_data_dir }}"
-      mode: "0750"
+      owner: "999"
+      group: "999"
+      mode: "0770"
     - path: "{{ redis_config_dir }}"
+      owner: root
+      group: pocket
       mode: "0750"
   when: redis_deployment_mode == 'docker'
 
@@ -25,7 +38,8 @@
     dest: "{{ redis_config_path }}"
     owner: root
     group: pocket
-    mode: "0640"
+    mode: "0644"
+  register: redis_config_result
   when: redis_deployment_mode == 'docker'
 
 - name: Run Redis container
@@ -35,12 +49,22 @@
     pull: missing
     restart_policy: unless-stopped
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    env:
+      SKIP_FIX_PERMS: "1"
     published_ports:
       - "{{ redis_bind_address }}:{{ redis_port }}:6379"
     volumes:
       - "{{ redis_data_dir }}:/data"
       - "{{ redis_config_path }}:/usr/local/etc/redis/redis.conf:ro"
+    restart: "{{ redis_config_result.changed | default(false) }}"
     state: started
+  when: redis_deployment_mode == 'docker'
+
+- name: Wait for Redis TCP port
+  ansible.builtin.wait_for:
+    host: "{{ redis_bind_address }}"
+    port: "{{ redis_port }}"
+    timeout: 60
   when: redis_deployment_mode == 'docker'
 
 - name: Inspect Redis container version
