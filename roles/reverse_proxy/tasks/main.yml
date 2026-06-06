@@ -51,6 +51,16 @@
     fail_msg: "Set Middleman domain and backend before enabling Middleman routing."
   when: reverse_proxy_middleman_enabled | bool
 
+- name: Validate Grafana public routing inputs
+  ansible.builtin.assert:
+    that:
+      - reverse_proxy_grafana_domain | length > 0
+      - reverse_proxy_grafana_backend is match('^https?://')
+      - reverse_proxy_grafana_basic_auth_user | length > 0
+      - reverse_proxy_grafana_basic_auth_hash | length > 0
+    fail_msg: "Set Grafana domain, backend, basic auth user, and Caddy bcrypt hash before enabling public Grafana routing."
+  when: reverse_proxy_grafana_enabled | bool
+
 - name: Validate TLS contact email for public endpoints
   ansible.builtin.assert:
     that:
@@ -163,3 +173,18 @@
   when:
     - reverse_proxy_validate_endpoints | bool
     - reverse_proxy_middleman_enabled | bool
+
+- name: Validate Grafana public endpoint requires authentication
+  ansible.builtin.uri:
+    url: "https://{{ reverse_proxy_grafana_domain }}/api/health"
+    method: GET
+    status_code: 401
+    timeout: "{{ reverse_proxy_healthcheck_timeout }}"
+    validate_certs: true
+  register: reverse_proxy_grafana_auth_check
+  retries: "{{ reverse_proxy_healthcheck_retries }}"
+  delay: "{{ reverse_proxy_healthcheck_delay }}"
+  until: reverse_proxy_grafana_auth_check.status == 401
+  when:
+    - reverse_proxy_validate_endpoints | bool
+    - reverse_proxy_grafana_enabled | bool

@@ -39,6 +39,12 @@ reverse_proxy_middleman_enabled: "{{ igniter_middleman_enabled | default(false) 
 reverse_proxy_middleman_domain: "{{ middleman_domain | default('') }}"
 reverse_proxy_middleman_backend: http://127.0.0.1:3000
 
+reverse_proxy_grafana_enabled: "{{ monitoring_grafana_public_enabled | default(false) | bool }}"
+reverse_proxy_grafana_domain: "{{ monitoring_grafana_domain | default('') }}"
+reverse_proxy_grafana_backend: "http://127.0.0.1:{{ monitoring_grafana_port | default(3002) }}"
+reverse_proxy_grafana_basic_auth_user: "{{ monitoring_grafana_public_basic_auth_user | default('') }}"
+reverse_proxy_grafana_basic_auth_hash: "{{ monitoring_grafana_public_basic_auth_hash | default('') }}"
+
 reverse_proxy_validate_endpoints: true
 reverse_proxy_healthcheck_timeout: 10
 reverse_proxy_healthcheck_retries: 12

@@ -25,6 +25,7 @@ validation_redis_enabled: "{{ inventory_hostname in groups.get('redis_hosts', []
 validation_relayer_enabled: "{{ inventory_hostname in groups.get('relay_relayers', []) and ha_relayminer_enabled | default(true) | bool }}"
 validation_miner_enabled: "{{ inventory_hostname in groups.get('relay_miners', []) and ha_relayminer_enabled | default(true) | bool }}"
 validation_reverse_proxy_enabled: "{{ inventory_hostname in groups.get('reverse_proxy_hosts', []) and reverse_proxy_enabled | default(true) | bool }}"
+validation_monitoring_enabled: "{{ inventory_hostname in groups.get('monitoring_hosts', []) and monitoring_enabled | default(false) | bool }}"
 
 validation_provider_health_url: "{{ igniter_provider_healthcheck_url | default('http://127.0.0.1:3001/api/health') }}"
 validation_provider_bootstrap_report_path: "{{ igniter_provider_bootstrap_report_path | default('/var/lib/pocket-automations/igniter-provider-bootstrap.md') }}"
@@ -44,3 +45,6 @@ validation_redis_port: "{{ (validation_redis_url | regex_replace('^redis://[^:/]
 validation_reverse_proxy_relay_url: "https://{{ reverse_proxy_relay_domain | default(relay_public_domain | default('')) }}"
 validation_reverse_proxy_provider_api_url: "https://{{ reverse_proxy_provider_public_api_domain | default(provider_public_api_domain | default('')) }}"
 validation_reverse_proxy_middleman_url: "https://{{ reverse_proxy_middleman_domain | default(middleman_domain | default('')) }}"
+validation_monitoring_prometheus_url: "{{ monitoring_prometheus_url | default('http://127.0.0.1:9091') }}"
+validation_monitoring_grafana_url: "{{ monitoring_grafana_url | default('http://127.0.0.1:3002') }}"
+validation_reverse_proxy_grafana_url: "https://{{ reverse_proxy_grafana_domain | default(monitoring_grafana_domain | default('')) }}"

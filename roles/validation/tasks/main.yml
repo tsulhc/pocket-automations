@@ -309,6 +309,19 @@
     - validation_reverse_proxy_enabled | bool
     - reverse_proxy_middleman_enabled | default(false) | bool
 
+- name: Check public Grafana reverse proxy requires authentication
+  ansible.builtin.uri:
+    url: "{{ validation_reverse_proxy_grafana_url }}/api/health"
+    method: GET
+    status_code: 401
+    timeout: "{{ validation_timeout }}"
+    validate_certs: true
+  register: validation_reverse_proxy_grafana_auth_check
+  failed_when: false
+  when:
+    - validation_reverse_proxy_enabled | bool
+    - reverse_proxy_grafana_enabled | default(false) | bool
+
 - name: Record reverse proxy validation result
   ansible.builtin.set_fact:
     validation_pass: >-
@@ -316,14 +329,56 @@
          + (['Relay public reverse proxy endpoint responded.'] if validation_reverse_proxy_relay_check.status is defined and validation_reverse_proxy_relay_check.status in [200, 400, 404, 405] else [])
          + (['Provider public API root path is blocked by allowlist.'] if validation_provider_api_block_check.status is defined and validation_provider_api_block_check.status == 403 else [])
          + (['Middleman public reverse proxy endpoint responded.'] if validation_reverse_proxy_middleman_check.status is defined and validation_reverse_proxy_middleman_check.status in [200, 404] else [])
+         + (['Grafana public endpoint requires authentication.'] if validation_reverse_proxy_grafana_auth_check.status is defined and validation_reverse_proxy_grafana_auth_check.status == 401 else [])
          + (['Provider admin UI is not publicly exposed by this inventory.'] if not reverse_proxy_provider_admin_enabled | default(false) | bool else []) }}
     validation_fail: >-
       {{ validation_fail
          + (['Relay public reverse proxy endpoint did not respond as expected.'] if reverse_proxy_relay_enabled | default(true) | bool and (validation_reverse_proxy_relay_check.status is not defined or validation_reverse_proxy_relay_check.status not in [200, 400, 404, 405]) else [])
          + (['Provider public API root path is not blocked with 403. Check reverse proxy allowlist.'] if reverse_proxy_provider_public_api_enabled | default(false) | bool and (validation_provider_api_block_check.status is not defined or validation_provider_api_block_check.status != 403) else [])
-         + (['Middleman public reverse proxy endpoint did not respond as expected.'] if reverse_proxy_middleman_enabled | default(false) | bool and (validation_reverse_proxy_middleman_check.status is not defined or validation_reverse_proxy_middleman_check.status not in [200, 404]) else []) }}
+         + (['Middleman public reverse proxy endpoint did not respond as expected.'] if reverse_proxy_middleman_enabled | default(false) | bool and (validation_reverse_proxy_middleman_check.status is not defined or validation_reverse_proxy_middleman_check.status not in [200, 404]) else [])
+         + (['Grafana public endpoint does not require authentication. Check reverse proxy basic auth.'] if reverse_proxy_grafana_enabled | default(false) | bool and (validation_reverse_proxy_grafana_auth_check.status is not defined or validation_reverse_proxy_grafana_auth_check.status != 401) else []) }}
     validation_warn: "{{ validation_warn + ['Provider admin UI public routing is enabled. Ensure this is restricted by VPN, firewall, or IP allowlisting.'] if reverse_proxy_provider_admin_enabled | default(false) | bool else validation_warn }}"
   when: validation_reverse_proxy_enabled | bool
+
+- name: Check Prometheus readiness
+  ansible.builtin.uri:
+    url: "{{ validation_monitoring_prometheus_url }}/-/ready"
+    method: GET
+    status_code: 200
+    timeout: "{{ validation_timeout }}"
+  register: validation_prometheus_ready_check
+  failed_when: false
+  when: validation_monitoring_enabled | bool
+
+- name: Check Grafana health
+  ansible.builtin.uri:
+    url: "{{ validation_monitoring_grafana_url }}/api/health"
+    method: GET
+    status_code: 200
+    timeout: "{{ validation_timeout }}"
+  register: validation_grafana_health_check
+  failed_when: false
+  when: validation_monitoring_enabled | bool
+
+- name: Check RelayMiner dashboard file
+  ansible.builtin.stat:
+    path: "{{ monitoring_dashboard_dest_path | default('/etc/pocket-automations/monitoring/grafana/dashboards/unified-overview.json') }}"
+  register: validation_monitoring_dashboard_stat
+  when: validation_monitoring_enabled | bool
+
+- name: Record monitoring validation result
+  ansible.builtin.set_fact:
+    validation_pass: >-
+      {{ validation_pass
+         + (['Prometheus is ready.'] if validation_prometheus_ready_check.status is defined and validation_prometheus_ready_check.status == 200 else [])
+         + (['Grafana health endpoint is reachable.'] if validation_grafana_health_check.status is defined and validation_grafana_health_check.status == 200 else [])
+         + (['HA RelayMiner Grafana dashboard is provisioned.'] if validation_monitoring_dashboard_stat.stat.exists | default(false) else []) }}
+    validation_fail: >-
+      {{ validation_fail
+         + (['Prometheus readiness endpoint is not reachable at ' ~ validation_monitoring_prometheus_url ~ '/-/ready.'] if validation_prometheus_ready_check.status is not defined or validation_prometheus_ready_check.status != 200 else [])
+         + (['Grafana health endpoint is not reachable at ' ~ validation_monitoring_grafana_url ~ '/api/health.'] if validation_grafana_health_check.status is not defined or validation_grafana_health_check.status != 200 else []) }}
+    validation_warn: "{{ validation_warn + ['HA RelayMiner Grafana dashboard file is missing.'] if not (validation_monitoring_dashboard_stat.stat.exists | default(false)) else validation_warn }}"
+  when: validation_monitoring_enabled | bool
 
 - name: Add infrastructure/manual boundary reminder
   ansible.builtin.set_fact:

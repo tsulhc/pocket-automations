@@ -34,4 +34,14 @@
 {{ reverse_proxy_middleman_domain }} {
   reverse_proxy {{ reverse_proxy_middleman_backend }}
 }
+
+{% endif %}
+{% if reverse_proxy_grafana_enabled | bool %}
+{{ reverse_proxy_grafana_domain }} {
+  basic_auth {
+    {{ reverse_proxy_grafana_basic_auth_user }} {{ reverse_proxy_grafana_basic_auth_hash }}
+  }
+
+  reverse_proxy {{ reverse_proxy_grafana_backend }}
+}
 {% endif %}
