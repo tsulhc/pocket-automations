@@ -11,6 +11,13 @@ igniter_postgres_user: igniter
 igniter_postgres_password: VAULT_OR_SECRET_MANAGER_VALUE
 igniter_postgres_host: postgresql
 igniter_postgres_port: 5432
+igniter_postgresql_version: 16.3-alpine
+
+igniter_temporal_version: 1.28.1.0
+igniter_temporal_tools_version: 1.28.1-tctl-1.18.4-cli-1.4.1
+igniter_temporal_ui_version: 2.39.0
+igniter_temporal_ui_host: 127.0.0.1
+igniter_temporal_ui_port: 18080
 
 temporal_external_host: temporal.example.internal
 temporal_external_port: 7233

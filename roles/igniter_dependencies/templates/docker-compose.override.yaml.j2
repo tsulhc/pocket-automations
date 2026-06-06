@@ -1,0 +1,4 @@
+services:
+  temporal-ui:
+    ports: !override
+      - "{{ igniter_temporal_ui_host }}:{{ igniter_temporal_ui_port }}:8080"

@@ -57,11 +57,17 @@
     - not igniter_provider_secret_file_stat.stat.exists
   no_log: true
 
-- name: Load Provider generated secrets
-  ansible.builtin.include_vars:
-    file: "{{ igniter_provider_secret_file }}"
-    name: igniter_provider_generated_secrets
+- name: Load Provider generated secrets from managed host
+  ansible.builtin.slurp:
+    src: "{{ igniter_provider_secret_file }}"
+  register: igniter_provider_generated_secrets_raw
   when: igniter_provider_secret_file_stat.stat.exists or igniter_provider_generate_missing_secrets | bool
+  no_log: true
+
+- name: Parse Provider generated secrets
+  ansible.builtin.set_fact:
+    igniter_provider_generated_secrets: "{{ igniter_provider_generated_secrets_raw.content | b64decode | from_yaml }}"
+  when: igniter_provider_generated_secrets_raw is defined and igniter_provider_generated_secrets_raw.content is defined
   no_log: true
 
 - name: Resolve effective Provider secrets

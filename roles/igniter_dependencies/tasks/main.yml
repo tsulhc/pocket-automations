@@ -42,6 +42,15 @@
   when: igniter_dependencies_mode == 'docker'
   no_log: true
 
+- name: Render Igniter dependencies compose override
+  ansible.builtin.template:
+    src: docker-compose.override.yaml.j2
+    dest: "{{ igniter_root }}/docker-compose/dependencies/docker-compose.override.yaml"
+    owner: igniter
+    group: pocket
+    mode: "0640"
+  when: igniter_dependencies_mode == 'docker'
+
 - name: Start Igniter dependency stack
   community.docker.docker_compose_v2:
     project_src: "{{ igniter_root }}/docker-compose/dependencies"

@@ -1,5 +1,8 @@
 ---
 igniter_provider_enabled: true
+igniter_repo_url: https://github.com/pokt-network/igniter.git
+igniter_repo_version: main
+igniter_root: /opt/igniter/source
 igniter_provider_compose_project_src: "{{ igniter_root }}/docker-compose/apps/provider"
 igniter_provider_env_path: "{{ igniter_provider_compose_project_src }}/.env"
 igniter_provider_secret_file: /etc/pocket-automations/igniter-provider-secrets.yml
