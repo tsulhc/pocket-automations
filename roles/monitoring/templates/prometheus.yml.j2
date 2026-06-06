@@ -1,0 +1,19 @@
+global:
+  scrape_interval: {{ monitoring_scrape_interval }}
+  evaluation_interval: {{ monitoring_evaluation_interval }}
+
+scrape_configs:
+{% for job in monitoring_scrape_jobs %}
+  - job_name: "{{ job.job_name }}"
+    static_configs:
+      - targets:
+{% for target in job.targets %}
+          - "{{ target }}"
+{% endfor %}
+{% if job.labels is defined and job.labels | length > 0 %}
+        labels:
+{% for label_name, label_value in job.labels.items() %}
+          {{ label_name }}: "{{ label_value }}"
+{% endfor %}
+{% endif %}
+{% endfor %}

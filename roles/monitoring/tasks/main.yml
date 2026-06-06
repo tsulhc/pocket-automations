@@ -1,0 +1,134 @@
+---
+- name: Skip monitoring when disabled
+  ansible.builtin.meta: end_host
+  when: not monitoring_enabled | bool
+
+- name: Validate monitoring deployment mode
+  ansible.builtin.assert:
+    that:
+      - monitoring_deployment_mode in ['docker']
+    fail_msg: "Initial monitoring support only implements monitoring_deployment_mode=docker."
+
+- name: Validate monitoring bind address
+  ansible.builtin.assert:
+    that:
+      - monitoring_bind_address in ['127.0.0.1', 'localhost'] or monitoring_allow_public_bind | default(false) | bool
+    fail_msg: >-
+      Monitoring must bind to 127.0.0.1 by default. Set monitoring_allow_public_bind=true only when
+      network-level access controls or reverse proxy authentication are configured.
+
+- name: Validate monitoring scrape jobs
+  ansible.builtin.assert:
+    that:
+      - monitoring_scrape_jobs | length > 0
+      - item.job_name is defined
+      - item.job_name | length > 0
+      - item.targets is defined
+      - item.targets | length > 0
+    fail_msg: "Set monitoring_scrape_jobs with job_name and one or more targets."
+  loop: "{{ monitoring_scrape_jobs }}"
+
+- name: Validate Grafana admin password is not the placeholder
+  ansible.builtin.assert:
+    that:
+      - monitoring_grafana_admin_password | length > 0
+      - monitoring_grafana_admin_password != 'VAULT_OR_SECRET_MANAGER_VALUE'
+    fail_msg: "Set monitoring_grafana_admin_password through Vault or an external secret manager before enabling monitoring."
+
+- name: Create monitoring directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: "{{ item.owner }}"
+    group: pocket
+    mode: "{{ item.mode }}"
+    state: directory
+  loop:
+    - path: "{{ monitoring_config_dir }}"
+      owner: root
+      mode: "0750"
+    - path: "{{ monitoring_config_dir }}/prometheus"
+      owner: root
+      mode: "0750"
+    - path: "{{ monitoring_config_dir }}/grafana/provisioning/datasources"
+      owner: root
+      mode: "0750"
+    - path: "{{ monitoring_config_dir }}/grafana/provisioning/dashboards"
+      owner: root
+      mode: "0750"
+    - path: "{{ monitoring_config_dir }}/grafana/dashboards"
+      owner: root
+      mode: "0750"
+    - path: "{{ monitoring_data_dir }}/prometheus"
+      owner: "65534"
+      mode: "0770"
+    - path: "{{ monitoring_data_dir }}/grafana"
+      owner: "472"
+      mode: "0770"
+
+- name: Render Prometheus configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ monitoring_config_dir }}/prometheus/prometheus.yml"
+    owner: root
+    group: pocket
+    mode: "0640"
+
+- name: Render Grafana datasource provisioning
+  ansible.builtin.template:
+    src: grafana-datasource.yml.j2
+    dest: "{{ monitoring_config_dir }}/grafana/provisioning/datasources/prometheus.yml"
+    owner: root
+    group: pocket
+    mode: "0640"
+
+- name: Render Grafana dashboard provider
+  ansible.builtin.template:
+    src: grafana-dashboard-provider.yml.j2
+    dest: "{{ monitoring_config_dir }}/grafana/provisioning/dashboards/relayminer.yml"
+    owner: root
+    group: pocket
+    mode: "0640"
+
+- name: Install upstream HA RelayMiner Grafana dashboard
+  ansible.builtin.copy:
+    src: "{{ monitoring_dashboard_source_path }}"
+    dest: "{{ monitoring_dashboard_dest_path }}"
+    owner: root
+    group: pocket
+    mode: "0640"
+
+- name: Render monitoring Docker Compose file
+  ansible.builtin.template:
+    src: docker-compose.yaml.j2
+    dest: "{{ monitoring_compose_path }}"
+    owner: root
+    group: pocket
+    mode: "0640"
+  no_log: true
+
+- name: Start monitoring services
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_config_dir }}"
+    project_name: "{{ monitoring_compose_project_name }}"
+    state: present
+    remove_orphans: true
+
+- name: Validate Prometheus readiness
+  ansible.builtin.uri:
+    url: "{{ monitoring_prometheus_url }}/-/ready"
+    method: GET
+    status_code: 200
+  register: monitoring_prometheus_ready
+  retries: "{{ monitoring_healthcheck_retries }}"
+  delay: "{{ monitoring_healthcheck_delay }}"
+  until: monitoring_prometheus_ready.status == 200
+
+- name: Validate Grafana health
+  ansible.builtin.uri:
+    url: "{{ monitoring_grafana_url }}/api/health"
+    method: GET
+    status_code: 200
+  register: monitoring_grafana_health
+  retries: "{{ monitoring_healthcheck_retries }}"
+  delay: "{{ monitoring_healthcheck_delay }}"
+  until: monitoring_grafana_health.status == 200

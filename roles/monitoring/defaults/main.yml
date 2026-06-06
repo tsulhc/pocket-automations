@@ -1,0 +1,33 @@
+---
+monitoring_enabled: true
+monitoring_deployment_mode: docker
+
+monitoring_config_dir: /etc/pocket-automations/monitoring
+monitoring_data_dir: /var/lib/pocket-automations/monitoring
+monitoring_compose_path: "{{ monitoring_config_dir }}/docker-compose.yaml"
+monitoring_compose_project_name: pocket-monitoring
+
+monitoring_prometheus_image: prom/prometheus:v3.7.3
+monitoring_grafana_image: grafana/grafana:12.0.2
+
+monitoring_bind_address: 127.0.0.1
+monitoring_prometheus_port: 9091
+monitoring_grafana_port: 3002
+monitoring_prometheus_url: "http://127.0.0.1:{{ monitoring_prometheus_port }}"
+monitoring_grafana_url: "http://127.0.0.1:{{ monitoring_grafana_port }}"
+
+monitoring_prometheus_retention_time: 30d
+monitoring_scrape_interval: 15s
+monitoring_evaluation_interval: 15s
+monitoring_scrape_jobs: []
+
+monitoring_grafana_admin_user: admin
+monitoring_grafana_admin_password: VAULT_OR_SECRET_MANAGER_VALUE
+monitoring_grafana_allow_signup: false
+monitoring_grafana_anonymous_enabled: false
+
+monitoring_dashboard_source_path: grafana/dashboards/unified-overview.json
+monitoring_dashboard_dest_path: "{{ monitoring_config_dir }}/grafana/dashboards/unified-overview.json"
+
+monitoring_healthcheck_retries: 20
+monitoring_healthcheck_delay: 5
