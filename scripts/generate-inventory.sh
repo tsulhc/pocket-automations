@@ -79,6 +79,51 @@ yaml_escape() {
   printf '%s' "${value}"
 }
 
+ask_matching() {
+  local prompt="$1"
+  local default_value="$2"
+  local pattern="$3"
+  local error_message="$4"
+  local value
+
+  while true; do
+    value="$(ask_required "${prompt}" "${default_value}")"
+    if [[ "${value}" =~ ${pattern} ]]; then
+      printf '%s' "${value}"
+      return 0
+    fi
+    say "${error_message}"
+  done
+}
+
+ask_host() {
+  ask_matching "$1" "${2:-}" '^[A-Za-z0-9._:-]+$' "Use a hostname, IP address, or host:port value without spaces."
+}
+
+ask_domain() {
+  ask_matching "$1" "${2:-}" '^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$' "Use a DNS name without scheme, path, or spaces."
+}
+
+ask_email() {
+  ask_matching "$1" "${2:-}" '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' "Use a valid email address."
+}
+
+ask_url() {
+  ask_matching "$1" "${2:-}" '^https?://[^[:space:]]+$' "Use an http:// or https:// URL without spaces."
+}
+
+ask_grpc_address() {
+  ask_matching "$1" "${2:-}" '^[A-Za-z0-9._-]+:[0-9]+$' "Use host:port without scheme, path, or spaces."
+}
+
+ask_remote_path() {
+  ask_matching "$1" "${2:-}" '^/[^[:space:]]+$' "Use an absolute remote path without spaces."
+}
+
+ask_caddy_bcrypt_hash() {
+  ask_matching "$1" "${2:-}" '^\$2[abxy]?\$[0-9]{2}\$.{53}$' "Use a Caddy bcrypt hash generated with caddy hash-password."
+}
+
 write_inventory() {
   local output_file="$1"
   local inventory_name="$2"
@@ -288,7 +333,7 @@ main() {
   say ""
 
   inventory_name="$(ask_required "Inventory host name" "pocket-provider-01")"
-  ansible_host="$(ask_required "Target VM IP or DNS name")"
+  ansible_host="$(ask_host "Target VM IP or DNS name")"
   ansible_user="$(ask_required "SSH user" "ubuntu")"
   ssh_key_path="$(ask_required "SSH private key path" "~/.ssh/id_ed25519")"
 
@@ -304,15 +349,15 @@ main() {
   fi
 
   chain_id="$(ask_required "Pocket chain ID" "${chain_id}")"
-  rpc_url="$(ask_required "Pocket RPC URL" "${rpc_url}")"
-  grpc_address="$(ask_required "Pocket gRPC address" "${grpc_address}")"
+  rpc_url="$(ask_url "Pocket RPC URL" "${rpc_url}")"
+  grpc_address="$(ask_grpc_address "Pocket gRPC address" "${grpc_address}")"
 
-  provider_domain="$(ask_required "Igniter Provider domain")"
-  relay_domain="$(ask_required "Public relay domain")"
-  tls_email="$(ask_required "TLS/ACME contact email")"
+  provider_domain="$(ask_domain "Igniter Provider domain")"
+  relay_domain="$(ask_domain "Public relay domain")"
+  tls_email="$(ask_email "TLS/ACME contact email")"
 
   owner_identity="$(ask_required "Igniter Provider owner identity")"
-  owner_email="$(ask_required "Igniter Provider owner email" "${tls_email}")"
+  owner_email="$(ask_email "Igniter Provider owner email" "${tls_email}")"
   app_identity="$(ask_required "Igniter Provider APP_IDENTITY secret or Vault placeholder" "VAULT_OR_SECRET_MANAGER_VALUE")"
   postgres_password="$(ask_required "PostgreSQL password or Vault placeholder" "VAULT_OR_SECRET_MANAGER_VALUE")"
 
@@ -325,23 +370,23 @@ main() {
   key_names=""
   case "${keys_mode}" in
     keys_file)
-      keys_file="$(ask_required "Remote supplier keys file path" "/etc/pocket-automations/ha-relayminer/keys/supplier-keys.yaml")"
+      keys_file="$(ask_remote_path "Remote supplier keys file path" "/etc/pocket-automations/ha-relayminer/keys/supplier-keys.yaml")"
       ;;
     keys_dir)
-      keys_dir="$(ask_required "Remote supplier keys directory" "/etc/pocket-automations/ha-relayminer/keys/suppliers")"
+      keys_dir="$(ask_remote_path "Remote supplier keys directory" "/etc/pocket-automations/ha-relayminer/keys/suppliers")"
       ;;
     keyring)
-      keyring_dir="$(ask_required "Remote keyring directory" "/etc/pocket-automations/ha-relayminer/keys/keyring")"
+      keyring_dir="$(ask_remote_path "Remote keyring directory" "/etc/pocket-automations/ha-relayminer/keys/keyring")"
       key_names="$(ask "Optional comma-separated key names to load" "")"
       ;;
   esac
 
   service_id="$(ask_required "Pocket service ID" "eth")"
-  service_backend_url="$(ask_required "Backend URL for ${service_id}")"
+  service_backend_url="$(ask_url "Backend URL for ${service_id}")"
   backend_check_enabled="$(ask_yes_no "Add an HTTP backend readiness check" "yes")"
   backend_check_url=""
   if [[ "${backend_check_enabled}" == "true" ]]; then
-    backend_check_url="$(ask_required "Backend readiness check URL" "${service_backend_url}")"
+    backend_check_url="$(ask_url "Backend readiness check URL" "${service_backend_url}")"
   fi
 
   say ""
@@ -352,10 +397,10 @@ main() {
   grafana_basic_auth_user=""
   grafana_basic_auth_hash=""
   if [[ "${grafana_public_enabled}" == "true" ]]; then
-    grafana_domain="$(ask_required "Grafana public domain")"
+    grafana_domain="$(ask_domain "Grafana public domain")"
     grafana_basic_auth_user="$(ask_required "Grafana public basic auth user" "admin")"
     say "Generate the bcrypt hash with: caddy hash-password --plaintext '<password>'"
-    grafana_basic_auth_hash="$(ask_required "Grafana public basic auth bcrypt hash")"
+    grafana_basic_auth_hash="$(ask_caddy_bcrypt_hash "Grafana public basic auth bcrypt hash")"
   fi
 
   output_file="${OUTPUT_BASE}/${inventory_name}/hosts.yml"
