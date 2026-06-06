@@ -8,7 +8,7 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time={{ monitoring_prometheus_retention_time }}
       - --web.listen-address=0.0.0.0:9090
-    published_ports:
+    ports:
       - "{{ monitoring_bind_address }}:{{ monitoring_prometheus_port }}:9090"
     volumes:
       - "{{ monitoring_config_dir }}/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
@@ -25,7 +25,7 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: "{{ monitoring_grafana_admin_password }}"
       GF_USERS_ALLOW_SIGN_UP: "{{ monitoring_grafana_allow_signup | bool | lower }}"
       GF_AUTH_ANONYMOUS_ENABLED: "{{ monitoring_grafana_anonymous_enabled | bool | lower }}"
-    published_ports:
+    ports:
       - "{{ monitoring_bind_address }}:{{ monitoring_grafana_port }}:3000"
     volumes:
       - "{{ monitoring_data_dir }}/grafana:/var/lib/grafana"

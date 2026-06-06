@@ -45,19 +45,19 @@
   loop:
     - path: "{{ monitoring_config_dir }}"
       owner: root
-      mode: "0750"
+      mode: "0755"
     - path: "{{ monitoring_config_dir }}/prometheus"
       owner: root
-      mode: "0750"
+      mode: "0755"
     - path: "{{ monitoring_config_dir }}/grafana/provisioning/datasources"
       owner: root
-      mode: "0750"
+      mode: "0755"
     - path: "{{ monitoring_config_dir }}/grafana/provisioning/dashboards"
       owner: root
-      mode: "0750"
+      mode: "0755"
     - path: "{{ monitoring_config_dir }}/grafana/dashboards"
       owner: root
-      mode: "0750"
+      mode: "0755"
     - path: "{{ monitoring_data_dir }}/prometheus"
       owner: "65534"
       mode: "0770"
@@ -71,7 +71,7 @@
     dest: "{{ monitoring_config_dir }}/prometheus/prometheus.yml"
     owner: root
     group: pocket
-    mode: "0640"
+    mode: "0644"
 
 - name: Render Grafana datasource provisioning
   ansible.builtin.template:
@@ -79,7 +79,7 @@
     dest: "{{ monitoring_config_dir }}/grafana/provisioning/datasources/prometheus.yml"
     owner: root
     group: pocket
-    mode: "0640"
+    mode: "0644"
 
 - name: Render Grafana dashboard provider
   ansible.builtin.template:
@@ -87,7 +87,7 @@
     dest: "{{ monitoring_config_dir }}/grafana/provisioning/dashboards/relayminer.yml"
     owner: root
     group: pocket
-    mode: "0640"
+    mode: "0644"
 
 - name: Install upstream HA RelayMiner Grafana dashboard
   ansible.builtin.copy:
@@ -95,7 +95,7 @@
     dest: "{{ monitoring_dashboard_dest_path }}"
     owner: root
     group: pocket
-    mode: "0640"
+    mode: "0644"
 
 - name: Render monitoring Docker Compose file
   ansible.builtin.template:

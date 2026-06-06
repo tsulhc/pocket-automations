@@ -10,7 +10,7 @@ reverse_proxy_caddyfile_path: /etc/caddy/Caddyfile
 
 reverse_proxy_tls_email: "{{ igniter_provider_owner_email | default('') }}"
 reverse_proxy_tls_enabled: true
-reverse_proxy_caddy_admin: off
+reverse_proxy_caddy_admin: "off"
 
 reverse_proxy_relay_enabled: true
 reverse_proxy_relay_domain: "{{ relay_public_domain | default('') }}"
