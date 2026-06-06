@@ -1,0 +1,74 @@
+---
+- name: Prepare hosts for component upgrades
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: common
+      tags:
+        - always
+    - role: docker
+      tags:
+        - always
+
+- name: Upgrade pocketd CLI
+  hosts: pocket_cli_hosts
+  gather_facts: true
+  vars:
+    pocketd_upgrade: true
+  roles:
+    - role: pocketd
+      tags:
+        - pocketd
+
+- name: Upgrade Igniter Provider
+  hosts: provider_hosts
+  gather_facts: true
+  roles:
+    - role: igniter_provider
+      tags:
+        - igniter
+        - igniter_provider
+
+- name: Upgrade optional Igniter Middleman
+  hosts: middleman_hosts
+  gather_facts: true
+  roles:
+    - role: igniter_middleman
+      when: igniter_middleman_enabled | bool
+      tags:
+        - igniter
+        - igniter_middleman
+
+- name: Upgrade HA RelayMiner
+  hosts: relay_relayers:relay_miners
+  gather_facts: true
+  serial: "{{ upgrade_relayminer_serial | default(1) }}"
+  roles:
+    - role: ha_relayminer
+      tags:
+        - relayminer
+
+- name: Upgrade monitoring
+  hosts: monitoring_hosts
+  gather_facts: true
+  roles:
+    - role: monitoring
+      tags:
+        - monitoring
+
+- name: Upgrade reverse proxy
+  hosts: reverse_proxy_hosts
+  gather_facts: true
+  roles:
+    - role: reverse_proxy
+      tags:
+        - reverse_proxy
+
+- name: Validate after upgrade
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: validation
+      when: upgrade_run_validation | default(true) | bool
+      tags:
+        - validation

@@ -30,6 +30,9 @@ Igniter owns supplier staking and staking lifecycle operations. Ansible does not
 - [Implementation Roadmap](docs/roadmap.md)
 - [Validation Workflow](docs/validation.md)
 - [Monitoring](docs/monitoring.md)
+- [Upgrades](docs/upgrades.md)
+- [Production Security Hardening](docs/security-hardening.md)
+- [Secret Rotation](docs/secret-rotation.md)
 - [Post-Deploy Checklist](docs/post-deploy-checklist.md)
 - [Troubleshooting](docs/troubleshooting.md)
 
