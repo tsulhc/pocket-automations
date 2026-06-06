@@ -13,6 +13,7 @@ Ansible prepares and validates infrastructure. Igniter remains responsible for s
 - HA RelayMiner relayer for relay traffic.
 - HA RelayMiner miner for supplier/session coordination and reward-relevant operation.
 - Caddy for public TLS relay ingress.
+- Prometheus and Grafana for HA RelayMiner monitoring.
 
 ## What This Guide Does Not Do
 
@@ -128,5 +129,21 @@ Before expecting rewards, confirm:
 - Supplier staking and service configuration are complete in Igniter.
 - Backend service checks pass from the relayer host.
 - Public relay DNS and TLS work.
+
+## Step 7: Open Grafana
+
+Grafana is private by default. Use an SSH tunnel:
+
+```bash
+ssh -L 3002:127.0.0.1:3002 ubuntu@<vm>
+```
+
+Then open:
+
+```text
+http://127.0.0.1:3002
+```
+
+If the setup wizard enabled public Grafana, open the configured Grafana domain and authenticate with the Caddy basic auth credentials.
 
 Use `docs/post-deploy-checklist.md` for the full checklist.

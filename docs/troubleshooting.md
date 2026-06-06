@@ -132,6 +132,41 @@ Confirm:
 - `reverse_proxy_tls_email` is set;
 - no other service is bound to public ports 80 or 443.
 
+## Monitoring
+
+### Prometheus is not ready
+
+Check the container and configuration:
+
+```bash
+docker logs pocket-monitoring-prometheus
+```
+
+Confirm `monitoring_scrape_jobs` contains valid targets.
+
+### Grafana health fails
+
+Check:
+
+```bash
+docker logs pocket-monitoring-grafana
+```
+
+Confirm `monitoring_grafana_admin_password` is set to a real secret value.
+
+### Public Grafana returns 401
+
+This is expected without basic auth credentials. Public Grafana must require authentication.
+
+### Public Grafana does not route
+
+Confirm:
+
+- `monitoring_grafana_public_enabled: true`;
+- `reverse_proxy_grafana_enabled: true`;
+- `monitoring_grafana_domain` resolves to the reverse proxy host;
+- `monitoring_grafana_public_basic_auth_hash` is a Caddy bcrypt hash.
+
 ## Backend Checks
 
 If validation reports no backend checks configured, add `ha_relayminer_backend_checks` to the inventory. Backend checks are important for reward readiness because HA RelayMiner can be healthy while the service backend is not.

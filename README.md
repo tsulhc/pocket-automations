@@ -29,6 +29,7 @@ Igniter owns supplier staking and staking lifecycle operations. Ansible does not
 - [Igniter Role](docs/igniter-role.md)
 - [Implementation Roadmap](docs/roadmap.md)
 - [Validation Workflow](docs/validation.md)
+- [Monitoring](docs/monitoring.md)
 - [Post-Deploy Checklist](docs/post-deploy-checklist.md)
 - [Troubleshooting](docs/troubleshooting.md)
 
@@ -49,6 +50,8 @@ ansible-playbook -i inventories/generated/<host-name>/hosts.yml playbooks/valida
 ```
 
 The generated profile enables both HA RelayMiner relayer and miner. Reward readiness still requires supplier keys, successful Igniter Provider bootstrap, and supplier lifecycle configuration in Igniter.
+
+The generated profile also deploys Prometheus and Grafana for HA RelayMiner monitoring. Grafana is private by default, with an explicit wizard option for public Caddy routing protected by basic auth.
 
 ## Source Of Truth
 

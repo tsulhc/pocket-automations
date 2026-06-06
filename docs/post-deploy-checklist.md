@@ -17,6 +17,8 @@ Use this checklist after `playbooks/site.yml` completes.
 - Temporal is running or external Temporal is reachable.
 - Redis is reachable and not publicly exposed by default.
 - Caddy is running when reverse proxy is enabled.
+- Prometheus is ready when monitoring is enabled.
+- Grafana health endpoint responds when monitoring is enabled.
 
 ## Pocket Connectivity
 
@@ -48,6 +50,7 @@ Use this checklist after `playbooks/site.yml` completes.
 - Relay traffic routes to HA RelayMiner.
 - Provider admin UI is not publicly exposed by default.
 - Redis, PostgreSQL, Temporal, metrics, and pprof are not intentionally proxied.
+- Grafana public routing is disabled unless explicitly configured with basic auth.
 
 ## Igniter Lifecycle
 
@@ -68,3 +71,4 @@ The deployment is reward-ready only when all of these are true:
 - supplier lifecycle configuration is complete in Igniter;
 - backend services are reachable and healthy;
 - public relay ingress works over TLS.
+- Prometheus is scraping relayer and miner metrics.

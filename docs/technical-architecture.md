@@ -205,7 +205,9 @@ Default ports to model in firewall and reverse proxy tasks:
 - `6379/tcp`: Redis, internal only.
 - `8080/tcp`: HA RelayMiner relay ingress.
 - `8081/tcp`: HA RelayMiner health.
+- `9091/tcp`: Prometheus, localhost or private network only.
 - `9092/tcp`: HA RelayMiner miner metrics.
+- `3002/tcp`: Grafana, localhost/private by default or public only behind authenticated reverse proxy.
 - `6060/tcp`: pprof, disabled or localhost-only in production.
 
 ## Security Principles
@@ -216,6 +218,7 @@ Default ports to model in firewall and reverse proxy tasks:
 - Temporal UI is never exposed publicly without authentication.
 - Secrets are generated with secure permissions and not committed.
 - TLS is required for public Provider API, Middleman, and relay endpoints.
+- Grafana may be exposed publicly only with reverse proxy authentication.
 - Backend service credentials are treated as secrets.
 - The operator key may be online for relay operations, but owner custody should remain separate for production.
 
