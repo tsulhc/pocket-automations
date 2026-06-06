@@ -2,7 +2,7 @@
 docker_apt_key_url: https://download.docker.com/linux/ubuntu/gpg
 docker_apt_keyring_path: /etc/apt/keyrings/docker.asc
 docker_apt_uri: https://download.docker.com/linux/ubuntu
-docker_apt_suite: "{{ ansible_distribution_release }}"
+docker_apt_suite: "{{ ansible_facts['distribution_release'] }}"
 docker_apt_components:
   - stable
 
@@ -21,4 +21,4 @@ docker_apt_architecture_map:
   aarch64: arm64
   armv7l: armhf
 
-docker_apt_architecture: "{{ docker_apt_architecture_map.get(ansible_architecture, ansible_architecture) }}"
+docker_apt_architecture: "{{ docker_apt_architecture_map.get(ansible_facts['architecture'], ansible_facts['architecture']) }}"

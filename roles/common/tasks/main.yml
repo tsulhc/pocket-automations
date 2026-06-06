@@ -2,11 +2,11 @@
 - name: Validate supported operating system
   ansible.builtin.assert:
     that:
-      - ansible_distribution in common_supported_distributions
-      - ansible_distribution_version in common_supported_ubuntu_versions
+      - ansible_facts['distribution'] in common_supported_distributions
+      - ansible_facts['distribution_version'] in common_supported_ubuntu_versions
     fail_msg: >-
       This automation currently supports Ubuntu {{ common_supported_ubuntu_versions | join(', ') }}.
-      Detected {{ ansible_distribution }} {{ ansible_distribution_version }}.
+      Detected {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}.
     success_msg: "Supported Ubuntu release detected."
 
 - name: Update apt package cache

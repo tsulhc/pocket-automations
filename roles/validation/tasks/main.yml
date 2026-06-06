@@ -12,15 +12,15 @@
 
 - name: Validate Ubuntu target
   ansible.builtin.set_fact:
-    validation_pass: "{{ validation_pass + ['Ubuntu ' ~ ansible_distribution_version ~ ' is supported.'] }}"
+    validation_pass: "{{ validation_pass + ['Ubuntu ' ~ ansible_facts['distribution_version'] ~ ' is supported.'] }}"
   when:
-    - ansible_distribution == 'Ubuntu'
-    - ansible_distribution_version in validation_supported_ubuntu_versions
+    - ansible_facts['distribution'] == 'Ubuntu'
+    - ansible_facts['distribution_version'] in validation_supported_ubuntu_versions
 
 - name: Record unsupported OS failure
   ansible.builtin.set_fact:
-    validation_fail: "{{ validation_fail + ['Unsupported OS: ' ~ ansible_distribution ~ ' ' ~ ansible_distribution_version ~ '. Use Ubuntu 22.04 or 24.04.'] }}"
-  when: ansible_distribution != 'Ubuntu' or ansible_distribution_version not in validation_supported_ubuntu_versions
+    validation_fail: "{{ validation_fail + ['Unsupported OS: ' ~ ansible_facts['distribution'] ~ ' ' ~ ansible_facts['distribution_version'] ~ '. Use Ubuntu 22.04 or 24.04.'] }}"
+  when: ansible_facts['distribution'] != 'Ubuntu' or ansible_facts['distribution_version'] not in validation_supported_ubuntu_versions
 
 - name: Check Docker service status
   ansible.builtin.command: systemctl is-active docker
