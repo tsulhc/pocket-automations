@@ -616,6 +616,7 @@ main() {
   [[ -n "${keyring_dir}" ]] && validate_matching_value "${keyring_dir}" '^/[^[:space:]]+$' "Use an absolute remote keyring directory without spaces"
   if [[ "${grafana_public_enabled}" == "true" ]]; then
     validate_matching_value "${grafana_domain}" '^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$' "Use a Grafana DNS name without scheme, path, or spaces"
+    # shellcheck disable=SC2016
     validate_matching_value "${grafana_basic_auth_hash}" '^\$2[abxy]?\$[0-9]{2}\$.{53}$' "Use a Caddy bcrypt hash generated with caddy hash-password"
   fi
   validate_distinct_domains "${provider_domain}" "${relay_domain}" "${grafana_public_enabled}" "${grafana_domain}"
