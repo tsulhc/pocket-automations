@@ -3,10 +3,13 @@ name: checks
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   ansible-and-shell:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,6 +29,37 @@ jobs:
 
       - name: Shellcheck wizard
         run: shellcheck scripts/generate-inventory.sh
+
+      - name: Check non-interactive wizard mode
+        run: |
+          cat > /tmp/pocket-wizard-answers.env <<'EOF'
+          INVENTORY_NAME=pocket-ci-test
+          ANSIBLE_HOST=203.0.113.10
+          ANSIBLE_USER=ubuntu
+          SSH_KEY_PATH=/home/operator/.ssh/id_ed25519
+          POCKET_NETWORK=main
+          PROVIDER_DOMAIN=provider.example.com
+          RELAY_DOMAIN=relay.example.com
+          TLS_EMAIL=ops@example.com
+          OWNER_IDENTITY=pokt1replacewithrealowneraddress
+          OWNER_EMAIL=ops@example.com
+          APP_IDENTITY=VAULT_OR_SECRET_MANAGER_VALUE
+          POSTGRES_PASSWORD=VAULT_OR_SECRET_MANAGER_VALUE
+          KEYS_MODE=keyring
+          KEYRING_DIR=/etc/pocket-automations/ha-relayminer/keys/keyring
+          KEY_NAMES=supplier-1
+          SERVICE_ID=eth
+          SERVICE_BACKEND_URL=https://eth-backend.example.com
+          BACKEND_CHECK_ENABLED=true
+          BACKEND_CHECK_URL=https://eth-backend.example.com
+          GRAFANA_ADMIN_PASSWORD=VAULT_OR_SECRET_MANAGER_VALUE
+          GRAFANA_PUBLIC_ENABLED=true
+          GRAFANA_DOMAIN=grafana.example.com
+          GRAFANA_BASIC_AUTH_USER=admin
+          GRAFANA_BASIC_AUTH_HASH='$2a$12$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZa'
+          EOF
+          scripts/generate-inventory.sh --config /tmp/pocket-wizard-answers.env --dry-run >/tmp/generated-hosts.yml
+          ansible-inventory -i /tmp/generated-hosts.yml --list >/dev/null
 
       - name: Syntax-check playbooks
         run: |
