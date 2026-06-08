@@ -4,7 +4,7 @@ Deploys HA RelayMiner relayer and miner components.
 
 The relayer handles relay ingress and backend proxying. The miner consumes Redis streams and submits claims and proofs.
 
-Default deployment mode is Docker build from the upstream `pokt-network/pocket-relay-miner` repository because no GitHub release artifacts are currently published.
+Default deployment mode pulls the upstream container image from `ghcr.io/pokt-network/pocket-relay-miner`. Source builds remain available by setting `ha_relayminer_install_mode: docker_build`.
 
 The role determines which components to run from inventory groups:
 

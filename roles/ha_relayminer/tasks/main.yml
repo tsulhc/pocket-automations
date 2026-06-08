@@ -6,8 +6,8 @@
 - name: Validate HA RelayMiner install mode
   ansible.builtin.assert:
     that:
-      - ha_relayminer_install_mode in ['docker_build']
-    fail_msg: "Initial HA RelayMiner support only implements ha_relayminer_install_mode=docker_build."
+      - ha_relayminer_install_mode in ['docker_image', 'docker_build']
+    fail_msg: "ha_relayminer_install_mode must be docker_image or docker_build."
 
 - name: Validate at least one HA RelayMiner component is enabled on this host
   ansible.builtin.assert:
@@ -81,6 +81,14 @@
     dest: "{{ ha_relayminer_root }}"
     version: "{{ ha_relayminer_repo_version }}"
     update: true
+  when: ha_relayminer_install_mode == 'docker_build'
+
+- name: Pull HA RelayMiner Docker image
+  community.docker.docker_image:
+    name: "{{ ha_relayminer_image_name }}"
+    tag: "{{ ha_relayminer_image_tag }}"
+    source: pull
+  when: ha_relayminer_install_mode == 'docker_image'
 
 - name: Build HA RelayMiner Docker image
   community.docker.docker_image:
@@ -92,6 +100,7 @@
       pull: true
       args:
         TARGETARCH: "{{ ha_relayminer_targetarch }}"
+  when: ha_relayminer_install_mode == 'docker_build'
 
 - name: Render relayer configuration
   ansible.builtin.template:

@@ -1,7 +1,7 @@
 ---
 ha_relayminer_enabled: true
 
-ha_relayminer_install_mode: docker_build
+ha_relayminer_install_mode: docker_image
 ha_relayminer_repo_url: https://github.com/pokt-network/pocket-relay-miner.git
 ha_relayminer_repo_version: main
 ha_relayminer_root: /opt/pocket-relay-miner/source
@@ -9,8 +9,8 @@ ha_relayminer_config_dir: /etc/pocket-automations/ha-relayminer
 ha_relayminer_keys_mount_path: /keys
 ha_relayminer_report_path: /var/lib/pocket-automations/ha-relayminer-readiness.md
 
-ha_relayminer_image_name: pocket-relay-miner
-ha_relayminer_image_tag: local
+ha_relayminer_image_name: ghcr.io/pokt-network/pocket-relay-miner
+ha_relayminer_image_tag: f882c51
 ha_relayminer_targetarch_map:
   x86_64: amd64
   aarch64: arm64
