@@ -33,6 +33,8 @@ Igniter owns supplier staking and staking lifecycle operations. Ansible does not
 - [Upgrades](docs/upgrades.md)
 - [Production Security Hardening](docs/security-hardening.md)
 - [Secret Rotation](docs/secret-rotation.md)
+- [Release Process](docs/release-process.md)
+- [HA Validation Matrix](docs/ha-validation-matrix.md)
 - [Post-Deploy Checklist](docs/post-deploy-checklist.md)
 - [Troubleshooting](docs/troubleshooting.md)
 

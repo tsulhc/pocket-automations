@@ -219,16 +219,49 @@ Acceptance criteria:
 
 Deliverables:
 
-- Monitoring role or Prometheus scrape examples.
-- Backup guidance for PostgreSQL, Redis, and Igniter state.
+- Monitoring role with Prometheus and Grafana.
+- Upstream HA RelayMiner dashboard provisioning.
 - Secret rotation guidance.
 - Upgrade playbooks.
-- Disaster recovery guidance.
+- Production security hardening guidance.
+- CI checks for syntax, inventory parsing, and shell quality.
 
 Acceptance criteria:
 
-- Operators have a documented path for backup, restore, upgrade, and incident response.
+- Operators have a documented path for upgrades, secret rotation, monitoring, and security hardening.
 - Production deployment avoids demo-only defaults.
+- Monitoring and public Grafana routing are validated on a real Ubuntu host.
+
+Out of scope:
+
+- Backup and restore.
+- Disaster recovery.
+- Supplier key custody.
+- On-chain staking transactions outside Igniter.
+
+## Phase 14: Production QA And Release Readiness
+
+Deliverables:
+
+- Stabilized GitHub Actions checks.
+- Non-interactive setup wizard mode for scripted inventory generation.
+- Release process documentation.
+- Initial changelog.
+- HA validation matrix.
+
+Acceptance criteria:
+
+- CI is green on `master`.
+- Wizard supports both interactive and config-file driven operation.
+- Generated inventories are parseable in CI and local checks.
+- Release documentation defines versioning, compatibility expectations, and tagging steps.
+- HA testing requirements are explicit before claiming multi-host production validation.
+
+Out of scope:
+
+- Backup and restore.
+- Disaster recovery.
+- Automated supplier lifecycle or staking operations.
 
 ## Commit Strategy
 
