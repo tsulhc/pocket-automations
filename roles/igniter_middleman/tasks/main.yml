@@ -102,6 +102,7 @@
     dest: "{{ igniter_root }}"
     version: "{{ igniter_repo_version }}"
     update: true
+    force: "{{ igniter_repo_force_update | bool }}"
 
 - name: Ensure Middleman compose directory exists
   ansible.builtin.file:

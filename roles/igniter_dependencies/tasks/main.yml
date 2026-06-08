@@ -30,6 +30,7 @@
     dest: "{{ igniter_root }}"
     version: "{{ igniter_repo_version }}"
     update: true
+    force: "{{ igniter_repo_force_update | bool }}"
   when: igniter_dependencies_mode == 'docker'
 
 - name: Render Igniter dependencies environment
@@ -41,6 +42,15 @@
     mode: "0640"
   when: igniter_dependencies_mode == 'docker'
   no_log: true
+
+- name: Render PostgreSQL configuration for self-hosted Igniter dependencies
+  ansible.builtin.template:
+    src: postgresql.conf.j2
+    dest: "{{ igniter_postgres_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: igniter_dependencies_mode == 'docker'
 
 - name: Render Igniter dependencies compose override
   ansible.builtin.template:
@@ -56,6 +66,17 @@
     project_src: "{{ igniter_root }}/docker-compose/dependencies"
     state: present
     pull: missing
+  when: igniter_dependencies_mode == 'docker'
+
+- name: Ensure Igniter PostgreSQL databases exist
+  ansible.builtin.shell: >-
+    docker exec postgresql psql -U {{ igniter_postgres_user | quote }} -d postgres -tAc
+    "SELECT 1 FROM pg_database WHERE datname='{{ item }}'" | grep -q 1 ||
+    docker exec postgresql createdb -U {{ igniter_postgres_user | quote }} {{ item | quote }}
+  args:
+    executable: /bin/bash
+  loop: "{{ igniter_postgres_databases }}"
+  changed_when: false
   when: igniter_dependencies_mode == 'docker'
 
 - name: Validate external PostgreSQL settings

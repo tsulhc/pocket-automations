@@ -2,6 +2,7 @@
 igniter_middleman_enabled: false
 igniter_repo_url: https://github.com/pokt-network/igniter.git
 igniter_repo_version: main
+igniter_repo_force_update: true
 igniter_root: /opt/igniter/source
 igniter_middleman_compose_project_src: "{{ igniter_root }}/docker-compose/apps/middleman"
 igniter_middleman_env_path: "{{ igniter_middleman_compose_project_src }}/.env"

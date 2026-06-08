@@ -1,0 +1,14 @@
+listen_addresses = '*'
+max_connections = {{ igniter_postgres_max_connections }}
+shared_buffers = {{ igniter_postgres_shared_buffers }}
+effective_cache_size = {{ igniter_postgres_effective_cache_size }}
+maintenance_work_mem = {{ igniter_postgres_maintenance_work_mem }}
+checkpoint_completion_target = 0.9
+wal_buffers = {{ igniter_postgres_wal_buffers }}
+default_statistics_target = 100
+random_page_cost = 1.1
+effective_io_concurrency = 200
+work_mem = {{ igniter_postgres_work_mem }}
+huge_pages = off
+min_wal_size = {{ igniter_postgres_min_wal_size }}
+max_wal_size = {{ igniter_postgres_max_wal_size }}

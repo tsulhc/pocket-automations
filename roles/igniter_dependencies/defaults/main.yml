@@ -1,6 +1,7 @@
 ---
 igniter_repo_url: https://github.com/pokt-network/igniter.git
 igniter_repo_version: main
+igniter_repo_force_update: true
 igniter_root: /opt/igniter/source
 
 postgres_deployment_mode: docker
@@ -12,6 +13,19 @@ igniter_postgres_password: VAULT_OR_SECRET_MANAGER_VALUE
 igniter_postgres_host: postgresql
 igniter_postgres_port: 5432
 igniter_postgresql_version: 16.3-alpine
+igniter_postgres_config_path: "{{ igniter_root }}/docker-compose/dependencies/postgresql/postgresql.conf"
+igniter_postgres_max_connections: 100
+igniter_postgres_shared_buffers: 256MB
+igniter_postgres_effective_cache_size: 1GB
+igniter_postgres_maintenance_work_mem: 128MB
+igniter_postgres_work_mem: 4MB
+igniter_postgres_wal_buffers: 16MB
+igniter_postgres_min_wal_size: 512MB
+igniter_postgres_max_wal_size: 1GB
+igniter_postgres_databases:
+  - provider
+  - middleman
+  - temporal
 
 igniter_temporal_version: 1.28.1.0
 igniter_temporal_tools_version: 1.28.1-tctl-1.18.4-cli-1.4.1
