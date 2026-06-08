@@ -19,7 +19,7 @@
 
 - name: Record unsupported OS failure
   ansible.builtin.set_fact:
-    validation_fail: "{{ validation_fail + ['Unsupported OS: ' ~ ansible_facts['distribution'] ~ ' ' ~ ansible_facts['distribution_version'] ~ '. Use Ubuntu 22.04 or 24.04.'] }}"
+    validation_fail: "{{ validation_fail + ['Unsupported OS: ' ~ ansible_facts['distribution'] ~ ' ' ~ ansible_facts['distribution_version'] ~ '. Use Ubuntu ' ~ validation_supported_ubuntu_versions | join(', ') ~ '.'] }}"
   when: ansible_facts['distribution'] != 'Ubuntu' or ansible_facts['distribution_version'] not in validation_supported_ubuntu_versions
 
 - name: Check Docker service status
@@ -379,6 +379,15 @@
          + (['Grafana health endpoint is not reachable at ' ~ validation_monitoring_grafana_url ~ '/api/health.'] if validation_grafana_health_check.status is not defined or validation_grafana_health_check.status != 200 else []) }}
     validation_warn: "{{ validation_warn + ['HA RelayMiner Grafana dashboard file is missing.'] if not (validation_monitoring_dashboard_stat.stat.exists | default(false)) else validation_warn }}"
   when: validation_monitoring_enabled | bool
+
+- name: Record private service exposure warnings
+  ansible.builtin.set_fact:
+    validation_warn: >-
+      {{ validation_warn
+         + (['Redis is explicitly allowed to bind publicly. Use a private network or firewall rules for production HA.'] if validation_redis_enabled | bool and redis_allow_public_bind | default(false) | bool else [])
+         + (['Redis bind address is not localhost: ' ~ redis_bind_address ~ '. Confirm it is reachable only on a private network or through firewall rules.'] if validation_redis_enabled | bool and redis_bind_address | default('127.0.0.1') not in ['127.0.0.1', 'localhost'] else [])
+         + (['HA RelayMiner relayer metrics bind publicly: ' ~ validation_relayer_metrics_bind ~ '. Keep raw metrics private or firewall-restricted.'] if validation_relayer_enabled | bool and validation_relayer_metrics_bind is search('^(0\.0\.0\.0|:)') else [])
+         + (['HA RelayMiner health endpoint bind publicly: ' ~ validation_relayer_health_bind ~ '. Keep raw health ports private or firewall-restricted.'] if validation_relayer_enabled | bool and validation_relayer_health_bind is search('^(0\.0\.0\.0|:)') else []) }}
 
 - name: Add infrastructure/manual boundary reminder
   ansible.builtin.set_fact:

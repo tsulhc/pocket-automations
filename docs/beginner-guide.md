@@ -27,7 +27,7 @@ Ansible prepares and validates infrastructure. Igniter remains responsible for s
 
 You need:
 
-- One Ubuntu 24.04 or 22.04 VM.
+- One Ubuntu 24.04, 22.04, or 26.04 VM.
 - SSH access to the VM.
 - A domain for public relay traffic, for example `relayer.example.com`.
 - A domain for Igniter Provider, for example `provider.example.com`.

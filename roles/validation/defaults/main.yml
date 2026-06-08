@@ -8,6 +8,7 @@ validation_delay: 3
 validation_supported_ubuntu_versions:
   - "22.04"
   - "24.04"
+  - "26.04"
 
 validation_pocket_rpc_enabled: true
 validation_pocket_grpc_enabled: true
@@ -35,6 +36,8 @@ validation_middleman_bootstrap_report_path: "{{ igniter_middleman_bootstrap_repo
 
 validation_relayer_health_url: "{{ ha_relayminer_relayer_health_url | default('http://127.0.0.1:8081/health') }}"
 validation_relayer_metrics_url: "{{ ha_relayminer_relayer_metrics_url | default('http://127.0.0.1:9090/metrics') }}"
+validation_relayer_health_bind: "{{ ha_relayminer_relayer_health_addr | default('0.0.0.0:8081') }}"
+validation_relayer_metrics_bind: "{{ ha_relayminer_relayer_metrics_addr | default('0.0.0.0:9090') }}"
 validation_miner_metrics_url: "{{ ha_relayminer_miner_metrics_url | default('http://127.0.0.1:9092/metrics') }}"
 validation_backend_checks: "{{ ha_relayminer_backend_checks | default([]) }}"
 

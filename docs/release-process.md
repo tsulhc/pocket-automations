@@ -16,11 +16,11 @@ The first recommended release is `v0.1.0` after CI is green and the HA validatio
 
 Current baseline:
 
-- Ubuntu: 22.04 and 24.04 target hosts;
+- Ubuntu: 22.04, 24.04, and 26.04 target hosts;
 - Ansible: ansible-core 2.21 tested locally and in CI;
 - Docker: official Docker Engine packages with Compose plugin;
 - Pocket docs source: <https://docs.pocket.network/>;
-- RelayMiner: built from `pokt-network/pocket-relay-miner` source;
+- RelayMiner: pinned GHCR image tag from `ghcr.io/pokt-network/pocket-relay-miner`;
 - Igniter: deployed from the configured upstream Igniter repository ref;
 - Caddy: official Caddy apt repository;
 - Monitoring: Prometheus and Grafana Docker images pinned through inventory defaults.

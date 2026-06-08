@@ -2,7 +2,9 @@
 docker_apt_key_url: https://download.docker.com/linux/ubuntu/gpg
 docker_apt_keyring_path: /etc/apt/keyrings/docker.asc
 docker_apt_uri: https://download.docker.com/linux/ubuntu
-docker_apt_suite: "{{ ansible_facts['distribution_release'] }}"
+docker_apt_suite_map:
+  "26.04": noble
+docker_apt_suite: "{{ docker_apt_suite_map.get(ansible_facts['distribution_version'], ansible_facts['distribution_release']) }}"
 docker_apt_components:
   - stable
 
